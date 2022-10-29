@@ -23,7 +23,7 @@ import { AzureFunctionTokenProvider} from "./GetFluidToken";
 
 import { AzureClient, AzureClientProps } from "@fluidframework/azure-client";
 import { ConfigView } from "./config-view";
-import { SidebarView } from "./sidebar-view";
+import { inSecureClientOptions, remoteClientOptions, SidebarView } from "./sidebar-view";
 
 /**
  * Other images
@@ -81,6 +81,7 @@ export class StageView extends View {
     private client! : LiveShareClient;
     private fluidClient! : AzureClient;
     private fluidOption! : string;
+    private containerID! : string;
 
     private offsetBy(x: number, y: number) {
         this._inkingManager.offset = {
@@ -96,7 +97,7 @@ export class StageView extends View {
     }
 
     private _hostResizeObserver!: ResizeObserver;
-    private _userInfo: IUserInfo;
+    private _userInfo!: IUserInfo;
 
     async createClientandContainer( options : ILiveShareClientOptions|any)
     {
@@ -106,10 +107,15 @@ export class StageView extends View {
                 `<div>Before Join Container</div>`,
                 document.body
             );
-    
-            const id = await this.createContainer();
-            this._container = await this.getContainer(id);
-    
+
+            if(this.containerID!="empty")
+            {
+                this._container = await this.getContainer(this.containerID);
+            }
+            else{
+                    const id = await this.createContainer();
+                    this._container = await this.getContainer(id);
+            }
             Utils.loadTemplate(
                 `<div>After Join Container</div>`,
                 document.body
@@ -128,34 +134,7 @@ export class StageView extends View {
     };
 
     private async internalStart() {
-        const remoteClientOptions: ILiveShareClientOptions | any =
-            {
-                
-                connection: {
-                    type: "remote",
-                    tenantId: "690187fa-ef07-48a4-8f3e-5a5f4b1e05be",
-                    tokenProvider: new AzureFunctionTokenProvider("https://fluidtoken.azurewebsites.net/api/FluidToken?code=JKCwNmfxBoO9jHiOnwxYAy_grAg2khn-D6CY3YQF-thtAzFu3hRzQg==", 
-                    { userId: "123", userName: "Test User", additionalDetails: "xyz"}),
-                   endpoint:"https://us.fluidrelay.azure.com"
-                }
-                
-            };
-
-            const inSecureClientOptions: ILiveShareClientOptions | any =
-            {
-                connection : {
-                    tenantId: "690187fa-ef07-48a4-8f3e-5a5f4b1e05be",
-                    tokenProvider: new InsecureTokenProvider(
-                      "d02efc9888846488b7e82bae73f0875d",
-                      {
-                        id: "123"
-                      }
-                    ),
-                    endpoint: "https://us.fluidrelay.azure.com",
-                    type: "remote"
-                  }   
-
-            };
+        
 
             const localClientOptions: ILiveShareClientOptions | any =
             {
@@ -204,18 +183,19 @@ export class StageView extends View {
                     await this.client.joinContainer(containerSchema)
                 ).container;
             }
-            else  if (fuildOption == "RemoteInsecure")
-            {
-                await this.createClientandContainer(inSecureClientOptions);
-            }
             else  if (fuildOption == "Local")
             {
-                this.client = new LiveShareClient();
+                this.client = new LiveShareClient(localClientOptions);
             
                 this._container = (
                     await this.client.joinContainer(localClientOptions)
                 ).container;
             }
+            else  if (fuildOption == "RemoteInsecure")
+            {
+                await this.createClientandContainer(inSecureClientOptions);
+            }
+            
             else  if (fuildOption == "RemoteSecure")
             {
                 await this.createClientandContainer(remoteClientOptions);
@@ -228,10 +208,10 @@ export class StageView extends View {
         }
        else
         {
-            //this.client = new LiveShareClient(localClientOptions); 
-            //this._container = await this.client.joinContainer(containerSchema);
+            this.client = new LiveShareClient(localClientOptions); 
+            this._container = await (await this.client.joinContainer(containerSchema)).container;
 
-            await this.createClientandContainer(remoteClientOptions);
+            //await this.createClientandContainer(remoteClientOptions);
         }  
         
       
@@ -298,12 +278,15 @@ export class StageView extends View {
         }
     }
 
-    constructor(fluidOption:string) {
+    constructor(fluidOption:string,containerID:string) {
         super();
 
         this.fluidOption = fluidOption;
+        this.containerID = containerID;
 
-        this._userInfo = getRandomUserInfo();
+        getRandomUserInfo().then(
+            (u) => this._userInfo = u
+        );
  
          Utils.loadTemplate(appTemplate, document.body);
 

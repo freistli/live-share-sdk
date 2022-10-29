@@ -6,9 +6,79 @@
 import * as Utils from "./utils";
 import { View } from "./view";
 import { app, meeting } from "@microsoft/teams-js";
+import { ILiveShareClientOptions } from "@microsoft/live-share";
+import { AzureFunctionTokenProvider } from "./GetFluidToken";
+import { InsecureTokenProvider } from "@fluidframework/test-client-utils";
+import { AzureClient, AzureClientProps } from "@fluidframework/azure-client";
+import { IFluidContainer } from "fluid-framework";
+import { LiveCanvas } from "@microsoft/live-share-canvas";
 
+const containerSchema = {
+    initialObjects: {
+        liveCanvas: LiveCanvas,
+    },
+};
+export const remoteClientOptions: ILiveShareClientOptions | any =
+{
+
+    connection: {
+        type: "remote",
+        tenantId: "",
+        tokenProvider: new AzureFunctionTokenProvider("",
+            { userId: "123", userName: "Test User", additionalDetails: "xyz" }),
+        endpoint: ""
+    }
+
+};
+
+export const inSecureClientOptions: ILiveShareClientOptions | any =
+{
+    connection: {
+        tenantId: "",
+        tokenProvider: new InsecureTokenProvider(
+            "",
+            {
+                id: "123"
+            }
+        ),
+        endpoint: "",
+        type: "remote"
+    }
+
+};
 export class SidebarView extends View {
-    public static fluidOption :string|undefined = "TeamsDefault";
+    public static fluidOption: string | undefined = "TeamsDefault";
+    private fluidClient!: AzureClient;
+    private containerID!: string;
+
+
+    async createClientandContainer(options: ILiveShareClientOptions | any) {
+        this.fluidClient = new AzureClient(options);
+
+        Utils.loadTemplate(
+            `<div>Before Join Container</div>`,
+            document.body
+        );
+
+        this.containerID = await this.createContainer();
+
+        Utils.loadTemplate(
+            `<div>After Join Container</div>`,
+            document.body
+        );
+    }
+
+    async createContainer(): Promise<string> {
+        const { container } = await this.fluidClient.createContainer(containerSchema);
+        const containerId = await container.attach();
+        return containerId;
+    };
+
+    async getContainer(id: string): Promise<IFluidContainer> {
+        const { container } = await this.fluidClient.getContainer(id, containerSchema);
+        return container;
+    };
+
     constructor() {
         super();
 
@@ -30,7 +100,7 @@ export class SidebarView extends View {
 
         const setupDropdown = (id: string, onChange: (event: any) => void) => {
             const dropdownList = document.getElementById(id);
-    
+
             if (dropdownList) {
                 dropdownList.onchange = onChange;
             }
@@ -44,16 +114,36 @@ export class SidebarView extends View {
 
         Utils.loadTemplate(template, document.body);
 
-        const element = document.getElementById("userSelected");
-        
 
-        if(element)
+        const element = document.getElementById("userSelected");
+
+        if (element)
             element.innerText = "You choosed: " + SidebarView.fluidOption;
 
-        setupDropdown("fluidOption",(any)=>{
+        setupDropdown("fluidOption", (any) => {
             SidebarView.fluidOption = any.target.value;
-             if(element)
-             element.innerText = "You choosed: " + SidebarView.fluidOption;
+            if (element)
+                element.innerText = "You choosed: " + SidebarView.fluidOption;
+
+            if (SidebarView.fluidOption == "RemoteInsecure") {
+                this.createClientandContainer(inSecureClientOptions).then
+                (
+                    () => {
+                        if (element)
+                            element.innerText = "New Container ID:" + this.containerID;
+                    }
+                );
+            }
+
+            else if (SidebarView.fluidOption == "RemoteSecure") {
+                this.createClientandContainer(remoteClientOptions).then
+                (
+                    () => {
+                        if (element)
+                            element.innerText =  "New Container ID:" + this.containerID;
+                    }
+                );
+            }
         });
 
         const shareToStageButton = document.getElementById("btnShareToStage");
@@ -66,7 +156,9 @@ export class SidebarView extends View {
                     } else {
                         console.warn("shareAppContentToStage failed", error);
                     }
-                }, window.location.origin + "?inTeams=1&view=stage&fluidOption="+SidebarView.fluidOption);
+                }, window.location.origin + "?inTeams=1&view=stage&fluidOption=" + SidebarView.fluidOption
+                + "&containerID="
+                + this.containerID);
             };
         }
     }

@@ -12,7 +12,8 @@ import * as Utils from "./utils";
 window.onload = () => {
     const params = new URLSearchParams(window.location.search);
     const viewParam = params.get("view") || "stage";
-    const fluidOption = params.get("fluidOption") || "TeamsDefault";
+    const fluidOption = params.get("fluidOption") || "Local";
+    const containerID = params.get("containerID") || "empty";
 
     let view: View;
 
@@ -21,7 +22,7 @@ window.onload = () => {
             view = new ConfigView();
             break;
         case "stage":
-            view = new StageView(fluidOption);
+            view = new StageView(fluidOption,containerID);
             break;
         default:
             view = new SidebarView();
