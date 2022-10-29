@@ -19,6 +19,9 @@ import { IFluidContainer } from "fluid-framework";
 import * as Utils from "./utils";
 import { View } from "./view";
 import { getRandomUserInfo } from "./random-userInfo";
+import { AzureFunctionTokenProvider} from "./GetFluidToken";
+
+import { AzureClient, AzureClientProps } from "@fluidframework/azure-client";
 
 /**
  * Other images
@@ -26,13 +29,14 @@ import { getRandomUserInfo } from "./random-userInfo";
  * https://guitar.com/wp-content/uploads/2020/09/Mark-Knopfler-Dier-Straits-Suhr-Schecter-Credit-Ebet-Roberts-Redferns@2560x1707.jpg
  */
 
-const appTemplate = `
+const appTemplate = `   
     <div id="appRoot">
         <div id="inkingRoot">
             <img id="backgroundImage" src="https://guitar.com/wp-content/uploads/2020/09/Mark-Knopfler-Dire-Straits-Credit-Mick-Hutson-Redferns@2160x1459.jpg"
                  alt="Mark Knopfler playing guitar" style="visibility: hidden;">
             <div id="inkingHost"></div>
         </div>
+        <div id="debugzone"></div>
         <div id="buttonStrip">
             <div class="toolbar">
                 <button id="btnStroke">Stroke</button>
@@ -72,6 +76,8 @@ const containerSchema = {
 export class StageView extends View {
     private _inkingManager!: InkingManager;
     private _container!: IFluidContainer;
+    private client! : LiveShareClient;
+    private fluidClient! : AzureClient;
 
     private offsetBy(x: number, y: number) {
         this._inkingManager.offset = {
@@ -89,25 +95,116 @@ export class StageView extends View {
     private _hostResizeObserver!: ResizeObserver;
     private _userInfo: IUserInfo;
 
+    async createClientandContainer( options : ILiveShareClientOptions|any)
+    {
+        this.fluidClient = new AzureClient(options);          
+
+            Utils.loadTemplate(
+                `<div>Before Join Container</div>`,
+                document.body
+            );
+    
+            const id = await this.createContainer();
+            this._container = await this.getContainer(id);
+    
+            Utils.loadTemplate(
+                `<div>After Join Container</div>`,
+                document.body
+            );
+    }
+
+    async  createContainer() : Promise<string> {
+        const { container } = await this.fluidClient.createContainer(containerSchema);
+        const containerId = await container.attach();
+        return containerId;
+    };
+
+    async  getContainer(id : string) : Promise<IFluidContainer> {
+        const { container } = await this.fluidClient.getContainer(id, containerSchema);
+        return container;
+    };
+
     private async internalStart() {
-        const clientOptions: ILiveShareClientOptions | undefined =
-            Utils.runningInTeams()
-                ? undefined
-                : {
-                      connection: {
-                          type: "local",
-                          tokenProvider: new InsecureTokenProvider("", {
-                              id: "123",
-                          }),
-                          endpoint: "http://localhost:7070",
-                      },
-                  };
+        const remoteClientOptions: ILiveShareClientOptions | any =
+            {
+                
+                connection: {
+                    type: "remote",
+                    tenantId: "",
+                    tokenProvider: new AzureFunctionTokenProvider("", 
+                    { userId: "123", userName: "Test User", additionalDetails: "xyz"}),
+                   endpoint:""
+                }
+                
+            };
 
-        const client = new LiveShareClient(clientOptions);
+            const inSecureClientOptions: ILiveShareClientOptions | any =
+            {
+                connection : {
+                    tenantId: "",
+                    tokenProvider: new InsecureTokenProvider(
+                      "",
+                      {
+                        id: "123"
+                      }
+                    ),
+                    endpoint: "https://us.fluidrelay.azure.com",
+                    type: "remote"
+                  }   
 
-        this._container = (
-            await client.joinContainer(containerSchema)
-        ).container;
+            };
+
+            const localClientOptions: ILiveShareClientOptions | any =
+            {
+                connection: {
+                    type: "local",
+                    tokenProvider: new InsecureTokenProvider("", {
+                        id: "123",
+                    }),
+                    endpoint: "http://localhost:7070",
+                }
+
+            };
+
+        if (Utils.runningInTeams() == true)
+        {
+            Utils.loadTemplate(
+                `<div>Before Initialize</div>`,
+                document.body
+            );
+
+            await Teams.app.initialize();
+
+            Utils.loadTemplate(
+                `<div>Initialized</div>`,
+                document.body
+            );
+
+            this.client = new LiveShareClient();
+
+            Utils.loadTemplate(
+                `<div>Before Join Container</div>`,
+                document.body
+            );
+    
+            this._container = (
+                await this.client.joinContainer(containerSchema)
+            ).container;
+    
+            Utils.loadTemplate(
+                `<div>After Join Container</div>`,
+                document.body
+            );
+        }
+       else
+        {
+            //this.client = new LiveShareClient(localClientOptions); 
+            //this._container = await this.client.joinContainer(containerSchema);
+
+            await this.createClientandContainer(remoteClientOptions);
+        }  
+        
+      
 
         const inkingHost = document.getElementById("inkingHost");
 
@@ -175,8 +272,8 @@ export class StageView extends View {
         super();
 
         this._userInfo = getRandomUserInfo();
-
-        Utils.loadTemplate(appTemplate, document.body);
+ 
+         Utils.loadTemplate(appTemplate, document.body);
 
         const backgroundImage = document.getElementById(
             "backgroundImage"
@@ -311,7 +408,7 @@ export class StageView extends View {
             console.error(error);
 
             Utils.loadTemplate(
-                `<div>Error: ${JSON.stringify(error)}</div>`,
+                `<div>Error: ${JSON.stringify(error)} ${error}</div>`,
                 document.body
             );
         });

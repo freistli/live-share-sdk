@@ -11,10 +11,16 @@ export function runningInTeams(): boolean {
 }
 
 export function loadTemplate(template: string, targetElement: HTMLElement) {
-    const templateElement = document.createElement("template");
+
+    const debugzone = document.getElementById("debugzone");
+
+    const templateElement =  document.createElement("template");
     templateElement["innerHTML"] = template;
 
-    targetElement["innerHTML"] = "";
+    //targetElement["innerHTML"] = "";
+    if(debugzone)
+      debugzone.appendChild(templateElement.content.cloneNode(true));
+    else
     targetElement.appendChild(templateElement.content.cloneNode(true));
 }
 
