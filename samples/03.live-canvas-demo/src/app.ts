@@ -7,10 +7,12 @@ import { View } from "./view";
 import { ConfigView } from "./config-view";
 import { StageView } from "./stage-view";
 import { SidebarView } from "./sidebar-view";
+import * as Utils from "./utils";
 
 window.onload = () => {
     const params = new URLSearchParams(window.location.search);
     const viewParam = params.get("view") || "stage";
+    const fluidOption = params.get("fluidOption") || "TeamsDefault";
 
     let view: View;
 
@@ -19,12 +21,13 @@ window.onload = () => {
             view = new ConfigView();
             break;
         case "stage":
-            view = new StageView();
+            view = new StageView(fluidOption);
             break;
         default:
             view = new SidebarView();
             break;
     }
+    Utils.loadTemplate(`<div>`+viewParam+`</div>`,document.body);
 
     view.start();
 };

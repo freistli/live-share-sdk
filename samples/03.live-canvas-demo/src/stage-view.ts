@@ -22,6 +22,8 @@ import { getRandomUserInfo } from "./random-userInfo";
 import { AzureFunctionTokenProvider} from "./GetFluidToken";
 
 import { AzureClient, AzureClientProps } from "@fluidframework/azure-client";
+import { ConfigView } from "./config-view";
+import { SidebarView } from "./sidebar-view";
 
 /**
  * Other images
@@ -78,6 +80,7 @@ export class StageView extends View {
     private _container!: IFluidContainer;
     private client! : LiveShareClient;
     private fluidClient! : AzureClient;
+    private fluidOption! : string;
 
     private offsetBy(x: number, y: number) {
         this._inkingManager.offset = {
@@ -130,10 +133,10 @@ export class StageView extends View {
                 
                 connection: {
                     type: "remote",
-                    tenantId: "",
-                    tokenProvider: new AzureFunctionTokenProvider("", 
+                    tenantId: "690187fa-ef07-48a4-8f3e-5a5f4b1e05be",
+                    tokenProvider: new AzureFunctionTokenProvider("https://fluidtoken.azurewebsites.net/api/FluidToken?code=JKCwNmfxBoO9jHiOnwxYAy_grAg2khn-D6CY3YQF-thtAzFu3hRzQg==", 
                     { userId: "123", userName: "Test User", additionalDetails: "xyz"}),
-                   endpoint:""
+                   endpoint:"https://us.fluidrelay.azure.com"
                 }
                 
             };
@@ -141,9 +144,9 @@ export class StageView extends View {
             const inSecureClientOptions: ILiveShareClientOptions | any =
             {
                 connection : {
-                    tenantId: "",
+                    tenantId: "690187fa-ef07-48a4-8f3e-5a5f4b1e05be",
                     tokenProvider: new InsecureTokenProvider(
-                      "",
+                      "d02efc9888846488b7e82bae73f0875d",
                       {
                         id: "123"
                       }
@@ -180,17 +183,44 @@ export class StageView extends View {
                 document.body
             );
 
-            this.client = new LiveShareClient();
-
             Utils.loadTemplate(
                 `<div>Before Join Container</div>`,
                 document.body
             );
-    
-            this._container = (
-                await this.client.joinContainer(containerSchema)
-            ).container;
-    
+     
+
+            const fuildOption = this.fluidOption;
+
+            Utils.loadTemplate(
+                `<div>Fluid Option is `+fuildOption +`</div>`,
+                document.body
+            );
+
+            if (fuildOption == "TeamsDefault")
+            {
+                this.client = new LiveShareClient();
+            
+                this._container = (
+                    await this.client.joinContainer(containerSchema)
+                ).container;
+            }
+            else  if (fuildOption == "RemoteInsecure")
+            {
+                await this.createClientandContainer(inSecureClientOptions);
+            }
+            else  if (fuildOption == "Local")
+            {
+                this.client = new LiveShareClient();
+            
+                this._container = (
+                    await this.client.joinContainer(localClientOptions)
+                ).container;
+            }
+            else  if (fuildOption == "RemoteSecure")
+            {
+                await this.createClientandContainer(remoteClientOptions);
+            }
+
             Utils.loadTemplate(
                 `<div>After Join Container</div>`,
                 document.body
@@ -268,8 +298,10 @@ export class StageView extends View {
         }
     }
 
-    constructor() {
+    constructor(fluidOption:string) {
         super();
+
+        this.fluidOption = fluidOption;
 
         this._userInfo = getRandomUserInfo();
  
