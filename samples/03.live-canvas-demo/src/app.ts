@@ -8,6 +8,31 @@ import { ConfigView } from "./config-view";
 import { StageView } from "./stage-view";
 import { SidebarView } from "./sidebar-view";
 import * as Utils from "./utils";
+import { parseColorHexRGB } from "@microsoft/fast-colors"
+import { fluentButton, fluentSelect, accentFillRest,accentFillActive,accentFillHover,fluentOption, provideFluentDesignSystem,
+    baseLayerLuminance,bodyFont, typeRampPlus1FontSize, SwatchRGB } from '@fluentui/web-components';
+
+     provideFluentDesignSystem().register([fluentButton(),fluentOption(),fluentSelect()]);
+
+if(Utils.runningInTeams())
+{   
+    baseLayerLuminance.withDefault(0);    
+    
+}
+else
+    baseLayerLuminance.withDefault(0.15);
+    bodyFont.withDefault(typeRampPlus1FontSize);
+ 
+    const colorRest = parseColorHexRGB("#5256B6");
+if(colorRest)
+    accentFillRest.withDefault(SwatchRGB.from(colorRest));
+const colorHover = parseColorHexRGB("#5B5FC7");
+if(colorHover)
+    accentFillHover.withDefault(SwatchRGB.from(colorHover));
+const colorActive = parseColorHexRGB("#484BA0");
+if(colorActive)
+    accentFillActive.withDefault(SwatchRGB.from(colorActive));
+
 
 window.onload = () => {
     const params = new URLSearchParams(window.location.search);
@@ -28,7 +53,6 @@ window.onload = () => {
             view = new SidebarView();
             break;
     }
-    Utils.loadTemplate(`<div>`+viewParam+`</div>`,document.body);
 
     view.start();
 };

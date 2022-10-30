@@ -38,35 +38,35 @@ const appTemplate = `
                  alt="Mark Knopfler playing guitar" style="visibility: hidden;">
             <div id="inkingHost"></div>
         </div>
-        <div id="debugzone"></div>
         <div id="buttonStrip">
             <div class="toolbar">
-                <button id="btnStroke">Stroke</button>
-                <button id="btnArrow">Arrow</button>
-                <button id="btnLaserPointer">Laser pointer</button>
-                <button id="btnHighlighter">Highlighter</button>
-                <button id="btnEraser">Eraser</button>
-                <button id="btnPointEraser">Point eraser</button>
-                <button id="btnClear" style="margin-left: 20px;">Clear</button>
-                <button id="btnToggleCursorShare">Share cursor</button>
+                <fluent-button appearance="accent" id="btnStroke">Stroke</fluent-button>
+                <fluent-button appearance="accent" id="btnArrow">Arrow</fluent-button>
+                <fluent-button appearance="accent" id="btnLaserPointer">Laser pointer</fluent-button>
+                <fluent-button appearance="accent" id="btnHighlighter">Highlighter</fluent-button>
+                <fluent-button appearance="accent" id="btnEraser">Eraser</fluent-button>
+                <fluent-button appearance="accent" id="btnPointEraser">Point eraser</fluent-button>
+                <fluent-button appearance="accent" id="btnClear" style="margin-left: 20px;">Clear</fluent-button>
+                <fluent-button appearance="accent" id="btnToggleCursorShare">Share cursor</fluent-button>
             </div>
             <div class="toolbar">
-                <button id="btnBlack">Black</button>
-                <button id="btnRed">Red</button>
-                <button id="btnGreen">Green</button>
-                <button id="btnBlue">Blue</button>
-                <button id="btnYellow">Yellow</button>
+                <fluent-button appearance="accent" id="btnBlack">Black</fluent-button>
+                <fluent-button appearance="accent" id="btnRed">Red</fluent-button>
+                <fluent-button appearance="accent" id="btnGreen">Green</fluent-button>
+                <fluent-button appearance="accent" id="btnBlue">Blue</fluent-button>
+                <fluent-button appearance="accent" id="btnYellow">Yellow</fluent-button>
             </div>
             <div class="toolbar">
-                <button id="btnZoomOut">Zoom out</button>
-                <button id="btnZoomIn">Zoom in</button>
-                <button id="btnOffsetLeft" style="margin-left: 20px;">Offset left</button>
-                <button id="btnOffsetUp">Offset up</button>
-                <button id="btnOffsetRight">Offset right</button>
-                <button id="btnOffsetDown">Offset down</button>
-                <button id="btnResetView" style="margin-left: 20px;">Reset view</button>
+                <fluent-button appearance="accent" id="btnZoomOut">Zoom out</fluent-button>
+                <fluent-button appearance="accent" id="btnZoomIn">Zoom in</fluent-button>
+                <fluent-button appearance="accent" id="btnOffsetLeft" style="margin-left: 20px;">Offset left</fluent-button>
+                <fluent-button appearance="accent" id="btnOffsetUp">Offset up</fluent-button>
+                <fluent-button appearance="accent" id="btnOffsetRight">Offset right</fluent-button>
+                <fluent-button appearance="accent" id="btnOffsetDown">Offset down</fluent-button>
+                <fluent-button appearance="accent" id="btnResetView" style="margin-left: 20px;">Reset view</fluent-button>
             </div>
-        </div>
+        </div>        
+        <div id="debugzone"></div>
     </div>`;
 
 const containerSchema = {

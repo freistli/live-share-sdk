@@ -25,8 +25,7 @@ export class ConfigView extends View {
     constructor() {
         super();
 
-        const template = `<div>This is the config page.
-       
+        const template = `<div>This is the Live Share config page.    
         </div>`;
 
         

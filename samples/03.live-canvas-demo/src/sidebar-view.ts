@@ -85,13 +85,13 @@ export class SidebarView extends View {
         let template = `<div>Live Share Canvas Side Bar
         
         <p/>
-        <select id="fluidOption">
+        <fluent-select id="fluidOption">
         
-        <option value="TeamsDefault" selected>Teams Default</option>
-        <option value="Local">Local</option>
-        <option value="RemoteInsecure">Remote Insecure</option>
-        <option value="RemoteSecure">Remote Secure</option>
-        </select>
+        <fluent-option  value="TeamsDefault" selected>Teams Default</fluent-option >
+        <fluent-option  value="Local">Local</fluent-option >
+        <fluent-option  value="RemoteInsecure">Remote Insecure</fluent-option >
+        <fluent-option  value="RemoteSecure">Remote Secure</fluent-option >
+        </fluent-select>
         
         <p/>
         <text id="userSelected"/>
@@ -109,7 +109,7 @@ export class SidebarView extends View {
 
 
         if (Utils.runningInTeams()) {
-            template += `<button id="btnShareToStage">Share to Stage</button>`;
+            template += `<fluent-button appearance="accent" id="btnShareToStage">Share to Stage</fluent-button>`;
         }
 
         Utils.loadTemplate(template, document.body);
