@@ -34,7 +34,7 @@ import { inSecureClientOptions, remoteClientOptions, SidebarView } from "./sideb
 const appTemplate = `   
     <div id="appRoot">
         <div id="inkingRoot">
-            <img id="backgroundImage" src="https://guitar.com/wp-content/uploads/2020/09/Mark-Knopfler-Dire-Straits-Credit-Mick-Hutson-Redferns@2160x1459.jpg"
+            <img id="backgroundImage" src="https://bing.com/th?id=OHR.SeaAngel_EN-US5531672696_1920x1080.jpg&amp;rf=LaDigue_1920x1080.jpg&amp;pid=hp"
                  alt="Mark Knopfler playing guitar" style="visibility: hidden;">
             <div id="inkingHost"></div>
         </div>
@@ -188,7 +188,7 @@ export class StageView extends View {
                 this.client = new LiveShareClient(localClientOptions);
             
                 this._container = (
-                    await this.client.joinContainer(localClientOptions)
+                    await this.client.joinContainer(containerSchema)
                 ).container;
             }
             else  if (fuildOption == "RemoteInsecure")
@@ -248,7 +248,7 @@ export class StageView extends View {
     private _backgroundImageHeight?: number;
 
     private updateBackgroundImagePosition() {
-        const backgroundImage = document.getElementById("backgroundImage");
+        const backgroundImage = document.getElementById("backgroundImage") as HTMLImageElement;
 
         if (
             backgroundImage &&
@@ -257,6 +257,11 @@ export class StageView extends View {
             this._backgroundImageHeight
         ) {
             backgroundImage.style.removeProperty("visibility");
+
+            if(this.fluidOption == "RemoteInsecure")
+               backgroundImage.src = "https://bing.com/th?id=OHR.BridgeofSighs_EN-US5335369208_1920x1080.jpg&rf=LaDigue_1920x1080.jpg&pid=hp";
+            if(this.fluidOption == "RemoteSecure")
+               backgroundImage.src = "https://bing.com/th?id=OHR.BrockenSpecter_EN-US5247366251_1920x1080.jpg&amp;rf=LaDigue_1920x1080.jpg&amp;pid=hp";
 
             const actualWidth =
                 this._backgroundImageWidth * this._inkingManager.scale;

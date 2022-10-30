@@ -20,7 +20,6 @@ const containerSchema = {
 };
 export const remoteClientOptions: ILiveShareClientOptions | any =
 {
-
     connection: {
         type: "remote",
         tenantId: "",
@@ -28,9 +27,7 @@ export const remoteClientOptions: ILiveShareClientOptions | any =
             { userId: "123", userName: "Test User", additionalDetails: "xyz" }),
         endpoint: ""
     }
-
 };
-
 export const inSecureClientOptions: ILiveShareClientOptions | any =
 {
     connection: {
@@ -44,28 +41,31 @@ export const inSecureClientOptions: ILiveShareClientOptions | any =
         endpoint: "",
         type: "remote"
     }
-
 };
+
 export class SidebarView extends View {
     public static fluidOption: string | undefined = "TeamsDefault";
     private fluidClient!: AzureClient;
-    private containerID!: string;
+    private containerID: string = "empty";
 
 
     async createClientandContainer(options: ILiveShareClientOptions | any) {
         this.fluidClient = new AzureClient(options);
 
         Utils.loadTemplate(
-            `<div>Before Join Container</div>`,
+            `<div>Current Container ID: ` + this.containerID+`</div>`,
             document.body
         );
 
-        this.containerID = await this.createContainer();
+        if(this.containerID=="empty")        
+        {
+            this.containerID = await this.createContainer();
 
-        Utils.loadTemplate(
-            `<div>After Join Container</div>`,
-            document.body
-        );
+            Utils.loadTemplate(
+                `<div>Update Container ID</div>`,
+                document.body
+            );
+        }
     }
 
     async createContainer(): Promise<string> {
@@ -82,7 +82,7 @@ export class SidebarView extends View {
     constructor() {
         super();
 
-        let template = `<div>Welcome to the Live Share Canvas demo
+        let template = `<div>Live Share Canvas Side Bar
         
         <p/>
         <select id="fluidOption">
