@@ -30,6 +30,12 @@ body {
     height: 100%;
 }
 
+#blcanvas {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+}
+
 #inkingHost {
     height: 100%;
 }
