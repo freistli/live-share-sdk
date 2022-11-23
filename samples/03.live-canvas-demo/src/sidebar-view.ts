@@ -6,16 +6,18 @@
 import * as Utils from "./utils";
 import { View } from "./view";
 import { app, meeting } from "@microsoft/teams-js";
-import { ILiveShareClientOptions } from "@microsoft/live-share";
+import { ILiveShareClientOptions, LiveShareClient } from "@microsoft/live-share";
 import { AzureFunctionTokenProvider } from "./GetFluidToken";
 import { InsecureTokenProvider } from "@fluidframework/test-client-utils";
 import { AzureClient, AzureClientProps } from "@fluidframework/azure-client";
-import { IFluidContainer } from "fluid-framework";
+import { IFluidContainer, SharedMap, SharedString } from "fluid-framework";
 import { LiveCanvas } from "@microsoft/live-share-canvas";
 
-const containerSchema = {
+export const containerSchema = {
     initialObjects: {
         liveCanvas: LiveCanvas,
+        objRotateY: SharedMap,
+        objName: SharedMap
     },
 };
 export const remoteClientOptions: ILiveShareClientOptions | any =
@@ -42,7 +44,17 @@ export const inSecureClientOptions: ILiveShareClientOptions | any =
         type: "remote"
     }
 };
+const localClientOptions: ILiveShareClientOptions | any =
+{
+    connection: {
+        type: "local",
+        tokenProvider: new InsecureTokenProvider("", {
+            id: "123",
+        }),
+        endpoint: "http://localhost:7070",
+    }
 
+};
 export class SidebarView extends View {
     public static fluidOption: string | undefined = "TeamsDefault";
     private fluidClient!: AzureClient;
@@ -87,8 +99,7 @@ export class SidebarView extends View {
         <p/>
         <fluent-select id="fluidOption">
         
-        <fluent-option  value="TeamsDefault" selected>Teams Default</fluent-option >
-        <fluent-option  value="Local">Local</fluent-option >
+        <fluent-option  value="TeamsDefault" selected>Teams Default</fluent-option >        
         <fluent-option  value="RemoteInsecure">Remote Insecure</fluent-option >
         <fluent-option  value="RemoteSecure">Remote Secure</fluent-option >
         </fluent-select>
@@ -143,7 +154,7 @@ export class SidebarView extends View {
                             element.innerText =  "New Container ID:" + this.containerID;
                     }
                 );
-            }
+            }            
         });
 
         const shareToStageButton = document.getElementById("btnShareToStage");

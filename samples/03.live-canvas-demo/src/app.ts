@@ -9,10 +9,10 @@ import { StageView } from "./stage-view";
 import { SidebarView } from "./sidebar-view";
 import * as Utils from "./utils";
 import { parseColorHexRGB } from "@microsoft/fast-colors"
-import { fluentButton, fluentSelect, accentFillRest,accentFillActive,accentFillHover,fluentOption, provideFluentDesignSystem,
+import { fluentButton, fluentSelect, fluentTextField, accentFillRest,accentFillActive,accentFillHover,fluentOption, provideFluentDesignSystem,
     baseLayerLuminance,bodyFont, typeRampPlus1FontSize, SwatchRGB } from '@fluentui/web-components';
 
-     provideFluentDesignSystem().register([fluentButton(),fluentOption(),fluentSelect()]);
+     provideFluentDesignSystem().register([fluentButton(),fluentOption(),fluentSelect(),fluentTextField()]);
 
 if(Utils.runningInTeams())
 {   

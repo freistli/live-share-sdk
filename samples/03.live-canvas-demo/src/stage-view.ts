@@ -6,7 +6,7 @@
 import * as Teams from "@microsoft/teams-js";
 import {
     ILiveShareClientOptions,
-    LiveShareClient,
+    LiveShareClient, TestLiveShareHost 
 } from "@microsoft/live-share";
 import {
     InkingManager,
@@ -15,18 +15,18 @@ import {
     LiveCanvas,
 } from "@microsoft/live-share-canvas";
 import { InsecureTokenProvider } from "@fluidframework/test-client-utils";
-import { IFluidContainer, SharedMap } from "fluid-framework";
+import { IFluidContainer, SharedMap, SharedString } from "fluid-framework";
 import * as Utils from "./utils";
 import { View } from "./view";
 import { getRandomUserInfo } from "./random-userInfo";
-import { AzureFunctionTokenProvider} from "./GetFluidToken";
+import { AzureFunctionTokenProvider } from "./GetFluidToken";
 
 import { AzureClient, AzureClientProps } from "@fluidframework/azure-client";
 import { ConfigView } from "./config-view";
-import { inSecureClientOptions, remoteClientOptions, SidebarView } from "./sidebar-view";
+import { containerSchema, inSecureClientOptions, remoteClientOptions, SidebarView } from "./sidebar-view";
 
 import "@babylonjs/loaders/glTF";
-import { Engine, Scene, ArcRotateCamera, Vector3, HemisphericLight, Mesh, MeshBuilder, SceneLoader } from "@babylonjs/core";
+import { Engine, Scene, ArcRotateCamera, Vector3, HemisphericLight, Mesh, MeshBuilder, SceneLoader, AbstractMesh } from "@babylonjs/core";
 
 /**
  * Other images
@@ -70,32 +70,29 @@ const appTemplate = `
                 <fluent-button appearance="accent" id="btnResetView" style="margin-left: 20px;">Reset view</fluent-button>
             </div>
             <div class="toolbar">
-            <fluent-button appearance="accent" id="btnRotateLeft">Rotate AntiClockwise</fluent-button>
-            
+            <fluent-button appearance="accent" id="btnRotateLeft">Rotate AntiClockwise</fluent-button>            
             <fluent-button appearance="accent" id="btnRotateRight">Rotate Clockwise</fluent-button>
+            </div>
+            
+            <div class="toolbar">
+            <fluent-text-field id="objNameTextField" appearance="outline" placeholder="bee01.glb" ></fluent-text-field>
             </div>
         </div>        
         <div id="debugzone"></div>
     </div>`;
 
-const containerSchema = {
-    initialObjects: {
-        liveCanvas: LiveCanvas,
-        objRotateY: SharedMap
-    },
-};
-
 const objRotateYKey = "RotateY";
-
+const objNameKey = "objName";
 
 export class StageView extends View {
     private _inkingManager!: InkingManager;
     private _container!: IFluidContainer;
-    private client! : LiveShareClient;
-    private fluidClient! : AzureClient;
-    private fluidOption! : string;
-    private containerID! : string;
-    public static glbObj : any;
+    private client!: LiveShareClient;
+    private fluidClient!: AzureClient;
+    private fluidOption!: string;
+    private containerID!: string;
+    public static glbObj: AbstractMesh;
+    public static originalScale: Vector3 ;
 
     private offsetBy(x: number, y: number) {
         this._inkingManager.offset = {
@@ -113,117 +110,144 @@ export class StageView extends View {
     private _hostResizeObserver!: ResizeObserver;
     private _userInfo!: IUserInfo;
 
-    async createClientandContainer( options : ILiveShareClientOptions|any)
-    {
-        this.fluidClient = new AzureClient(options);          
+    async createClientandContainer(options: ILiveShareClientOptions | any) {
+        this.fluidClient = new AzureClient(options);
 
-            Utils.loadTemplate(
-                `<div>Before Join Container</div>`,
-                document.body
-            );
+        Utils.loadTemplate(
+            `<div>Before Join Container</div>`,
+            document.body
+        );
 
-            if(this.containerID!="empty")
-            {
-                this._container = await this.getContainer(this.containerID);
-            }
-            else{
-                    const id = await this.createContainer();
-                    this._container = await this.getContainer(id);
-            }
-            Utils.loadTemplate(
-                `<div>After Join Container</div>`,
-                document.body
-            );
+        if (this.containerID != "empty") {
+            this._container = await this.getContainer(this.containerID);
+        }
+        else {
+            const id = await this.createContainer();
+            this._container = await this.getContainer(id);
+        }
+        Utils.loadTemplate(
+            `<div>After Join Container</div>`,
+            document.body
+        );
     }
 
-    async  createContainer() : Promise<string> {
+    async createContainer(): Promise<string> {
         const { container } = await this.fluidClient.createContainer(containerSchema);
         const containerId = await container.attach();
         return containerId;
     };
 
-    async  getContainer(id : string) : Promise<IFluidContainer> {
+    async getContainer(id: string): Promise<IFluidContainer> {
         const { container } = await this.fluidClient.getContainer(id, containerSchema);
         return container;
     };
 
-    
 
-    private updateCanvas(objRotateY : SharedMap) {
 
-        const rotateY = objRotateY?.get(objRotateYKey);
+    private updateCanvas(objRotateY: SharedMap, objName: SharedMap) {
 
+        
         // create the canvas html element and attach it to the webpage
         var canvas = document.getElementById("blcanvas") as HTMLCanvasElement;
 
-        if(canvas)
-        {
+        if (canvas) {
 
-        // initialize babylon scene and engine
-        var engine = new Engine(canvas, true);
-        var scene = new Scene(engine);
+            // initialize babylon scene and engine
+            var engine = new Engine(canvas, true);
+            var scene = new Scene(engine);
 
-        var camera: ArcRotateCamera = new ArcRotateCamera("Camera", Math.PI / 2, Math.PI / 2, 2, Vector3.Zero(), scene);
-        camera.attachControl(canvas, true);
-        var light1: HemisphericLight = new HemisphericLight("light1", new Vector3(1, 1, 0), scene);
+            var camera: ArcRotateCamera = new ArcRotateCamera("Camera", Math.PI / 2, Math.PI / 2, 2, Vector3.Zero(), scene);
+            camera.attachControl(canvas, true);
+            var light1: HemisphericLight = new HemisphericLight("light1", new Vector3(1, 1, 0), scene);
 
-        /* hide/show the Inspector
-        window.addEventListener("keydown", (ev) => {
-            // Shift+Ctrl+Alt+I
-            if (ev.shiftKey && ev.ctrlKey && ev.altKey && ev.keyCode === 73) {
-                if (scene.debugLayer.isVisible()) {
-                    scene.debugLayer.hide();
-                } else {
-                    scene.debugLayer.show();
+            /* hide/show the Inspector
+            window.addEventListener("keydown", (ev) => {
+                // Shift+Ctrl+Alt+I
+                if (ev.shiftKey && ev.ctrlKey && ev.altKey && ev.keyCode === 73) {
+                    if (scene.debugLayer.isVisible()) {
+                        scene.debugLayer.hide();
+                    } else {
+                        scene.debugLayer.show();
+                    }
                 }
-            }
-        });
-        */
-           SceneLoader.ImportMesh("", "https://fllivesharecanvas.azurewebsites.net/", "bee.glb", scene, function (newMeshes, particleSystems, skeletons, animationGroups) {
-           if(newMeshes)
-           {
-            StageView.glbObj = newMeshes[0];
-        
-            //Scale the model down        
-            StageView.glbObj.scaling.scaleInPlace(2);
-            if(rotateY)
-                StageView.glbObj.rotation = new Vector3(0,rotateY*Math.PI/180,0);
-           }
+            });
+            */
+            const importMesh = () => {
+                const rotateY = (this._container.initialObjects.objRotateY as SharedMap)?.get(objRotateYKey);
+                const objname = (this._container.initialObjects.objName as SharedMap).get(objNameKey) ?? "bee01.glb";
+                SceneLoader.ImportMesh("", "https://fllivesharecanvas.azurewebsites.net/", objname, scene, function (newMeshes, particleSystems, skeletons, animationGroups) {
 
-           const updateGlbObj = () => {
-            const result = objRotateY.get(objRotateYKey);
-            StageView.glbObj.rotation = new Vector3(0,result*Math.PI/180,0);
-        };  
-        const result = objRotateY?.on("valueChanged", updateGlbObj);
+                    if (newMeshes) {
+                        console.log("load new mesh: "+objname);
+                        StageView.glbObj = newMeshes[0];
 
-                
-        });
+                        //Scale the model down
+                        if (objname.includes('bee'))
+                            StageView.glbObj.scaling.scaleInPlace(0.07);
+                        else if (objname.includes('avarar'))
+                            StageView.glbObj.scaling.scaleInPlace(2);
+                        else
+                            StageView.glbObj.scaling.scaleInPlace(1);
 
-        
-      
-        // run the main render loop
-        engine.runRenderLoop(() => {
-            scene.render();
-        });
-    }
-    }
-    private async internalStart() {
-        
+                        StageView.originalScale = StageView.glbObj.scaling;
 
-            const localClientOptions: ILiveShareClientOptions | any =
-            {
-                connection: {
-                    type: "local",
-                    tokenProvider: new InsecureTokenProvider("", {
-                        id: "123",
-                    }),
-                    endpoint: "http://localhost:7070",
-                }
-
+                        if (rotateY)
+                            StageView.glbObj.rotation = new Vector3(0, rotateY * Math.PI / 180, 0);
+                        else
+                            StageView.glbObj.rotation = new Vector3(0, Math.PI, 0);
+                    }
+                });
             };
 
-        if (Utils.runningInTeams() == true)
+            importMesh();
+
+            const updateGlbObjRotation = () => {
+                const result = (this._container.initialObjects.objRotateY as SharedMap).get(objRotateYKey);
+                if(StageView.glbObj != null && StageView.glbObj.isDisposed() == false)     { 
+                StageView.glbObj.rotation = new Vector3(0, result * Math.PI / 180, 0);
+                }
+            };
+
+            objRotateY?.on("valueChanged", updateGlbObjRotation);
+
+            const updateGlbObj = () => {
+                console.log("update glb obj"); 
+                
+                if(StageView.glbObj != null && StageView.glbObj.isDisposed() == false)     {                          
+                scene.removeMesh(StageView.glbObj); 
+                StageView.glbObj.dispose();
+                }
+                importMesh();
+            };
+
+            objName?.on("valueChanged", updateGlbObj);
+
+            // run the main render loop
+            engine.runRenderLoop(() => {
+                scene.render();
+            });
+        }
+    }
+
+    private async internalStart() {
+
+        const host = Utils.runningInTeams()
+            ? Teams.LiveShareHost.create()
+            : TestLiveShareHost.create();
+
+        const localClientOptions: ILiveShareClientOptions | any =
         {
+            connection: {
+                type: "local",
+                tokenProvider: new InsecureTokenProvider("", {
+                    id: "123",
+                }),
+                endpoint: "http://localhost:7070",
+            }
+
+        };
+
+        if (Utils.runningInTeams() == true) {
             Utils.loadTemplate(
                 `<div>Before Initialize</div>`,
                 document.body
@@ -240,38 +264,34 @@ export class StageView extends View {
                 `<div>Before Join Container</div>`,
                 document.body
             );
-     
+
 
             const fuildOption = this.fluidOption;
 
             Utils.loadTemplate(
-                `<div>Fluid Option is `+fuildOption +`</div>`,
+                `<div>Fluid Option is ` + fuildOption + `</div>`,
                 document.body
             );
 
-            if (fuildOption == "TeamsDefault")
-            {
-                this.client = new LiveShareClient();
-            
+            if (fuildOption == "TeamsDefault") {
+                this.client = new LiveShareClient(host);
+
                 this._container = (
                     await this.client.joinContainer(containerSchema)
                 ).container;
             }
-            else  if (fuildOption == "Local")
-            {
-                this.client = new LiveShareClient(localClientOptions);
-            
+            else if (fuildOption == "Local") {
+                this.client = new LiveShareClient(host,localClientOptions);
+
                 this._container = (
                     await this.client.joinContainer(containerSchema)
                 ).container;
             }
-            else  if (fuildOption == "RemoteInsecure")
-            {
+            else if (fuildOption == "RemoteInsecure") {
                 await this.createClientandContainer(inSecureClientOptions);
             }
-            
-            else  if (fuildOption == "RemoteSecure")
-            {
+
+            else if (fuildOption == "RemoteSecure") {
                 await this.createClientandContainer(remoteClientOptions);
             }
 
@@ -280,15 +300,14 @@ export class StageView extends View {
                 document.body
             );
         }
-       else
-        {
-            this.client = new LiveShareClient(localClientOptions); 
+        else {
+            this.client = new LiveShareClient(host,localClientOptions);
             this._container = await (await this.client.joinContainer(containerSchema)).container;
 
             //await this.createClientandContainer(remoteClientOptions);
-        }  
-        
-      
+        }
+
+
 
         const inkingHost = document.getElementById("inkingHost");
 
@@ -317,7 +336,7 @@ export class StageView extends View {
 
         this.updateBackgroundImagePosition();
 
-        this.updateCanvas(this._container.initialObjects.objRotateY as SharedMap);
+        this.updateCanvas(this._container.initialObjects.objRotateY as SharedMap, this._container.initialObjects.objName as SharedMap);
     }
 
     private _backgroundImageWidth?: number;
@@ -334,10 +353,10 @@ export class StageView extends View {
         ) {
             backgroundImage.style.removeProperty("visibility");
 
-            if(this.fluidOption == "RemoteInsecure")
-               backgroundImage.src = "https://bing.com/th?id=OHR.BridgeofSighs_EN-US5335369208_1920x1080.jpg&rf=LaDigue_1920x1080.jpg&pid=hp";
-            if(this.fluidOption == "RemoteSecure")
-               backgroundImage.src = "https://bing.com/th?id=OHR.BrockenSpecter_EN-US5247366251_1920x1080.jpg&amp;rf=LaDigue_1920x1080.jpg&amp;pid=hp";
+            if (this.fluidOption == "RemoteInsecure")
+                backgroundImage.src = "https://bing.com/th?id=OHR.BridgeofSighs_EN-US5335369208_1920x1080.jpg&rf=LaDigue_1920x1080.jpg&pid=hp";
+            if (this.fluidOption == "RemoteSecure")
+                backgroundImage.src = "https://bing.com/th?id=OHR.BrockenSpecter_EN-US5247366251_1920x1080.jpg&amp;rf=LaDigue_1920x1080.jpg&amp;pid=hp";
 
             const actualWidth =
                 this._backgroundImageWidth * this._inkingManager.scale;
@@ -358,10 +377,10 @@ export class StageView extends View {
                 "px";
         }
     }
-    
-    
 
-    constructor(fluidOption:string,containerID:string) {
+
+
+    constructor(fluidOption: string, containerID: string) {
         super();
 
         this.fluidOption = fluidOption;
@@ -370,8 +389,8 @@ export class StageView extends View {
         getRandomUserInfo().then(
             (u) => this._userInfo = u
         );
- 
-         Utils.loadTemplate(appTemplate, document.body);
+
+        Utils.loadTemplate(appTemplate, document.body);
 
         const backgroundImage = document.getElementById(
             "backgroundImage"
@@ -399,6 +418,14 @@ export class StageView extends View {
 
             if (button) {
                 button.onclick = onClick;
+            }
+        };
+
+        const setupTextField = (id: string, onChange: (event: any) => void) => {
+            const textField = document.getElementById(id);
+
+            if (textField) {
+                textField.onchange = onChange;
             }
         };
 
@@ -463,19 +490,24 @@ export class StageView extends View {
 
             this._inkingManager.scale = 1;
 
+            StageView.glbObj.scaling = StageView.originalScale;
+
             this.updateBackgroundImagePosition();
         });
+
 
         setupButton("btnZoomOut", () => {
             if (this._inkingManager.scale > 0.1) {
                 this._inkingManager.scale -= 0.1;
-
+                const scale:Vector3 =  StageView.glbObj.scaling;
+            StageView.glbObj.scaling = new Vector3(scale.x*0.9,scale.y*0.9,scale.z*0.9);
                 this.updateBackgroundImagePosition();
             }
         });
         setupButton("btnZoomIn", () => {
             this._inkingManager.scale += 0.1;
-
+            const scale:Vector3 =  StageView.glbObj.scaling;
+            StageView.glbObj.scaling = new Vector3(scale.x*1.1,scale.y*1.1,scale.z*1.1);
             this.updateBackgroundImagePosition();
         });
 
@@ -495,32 +527,37 @@ export class StageView extends View {
         });
 
         setupButton("btnRotateRight", () => {
-           const result = (this._container.initialObjects.objRotateY as SharedMap)?.get(objRotateYKey);
+            const result = (this._container.initialObjects.objRotateY as SharedMap)?.get(objRotateYKey);
 
-           console.log("right: "+ result);
-           let rotateY : number = 10;
-           if(result)
-               rotateY += result;
-            (this._container.initialObjects.objRotateY as SharedMap)?.set(objRotateYKey,rotateY);
-            StageView.glbObj.rotation = new Vector3(0,rotateY*Math.PI/180,0);
+            console.log("right: " + result);
+            let rotateY: number = 10;
+            if (result)
+                rotateY += result;
+            (this._container.initialObjects.objRotateY as SharedMap)?.set(objRotateYKey, rotateY);
+            StageView.glbObj.rotation = new Vector3(0, rotateY * Math.PI / 180, 0);
 
-            console.log("right: "+ rotateY);
+            console.log("right: " + rotateY);
 
         });
 
         setupButton("btnRotateLeft", () => {
             const result = (this._container.initialObjects.objRotateY as SharedMap)?.get(objRotateYKey);
-            let rotateY : number = -10;
-            if(result)
+            let rotateY: number = -10;
+            if (result)
                 rotateY += result;
-             (this._container.initialObjects.objRotateY as SharedMap)?.set(objRotateYKey,rotateY);
-             StageView.glbObj.rotation = new Vector3(0,rotateY*Math.PI/180,0);
-         });
+            (this._container.initialObjects.objRotateY as SharedMap)?.set(objRotateYKey, rotateY);
+            StageView.glbObj.rotation = new Vector3(0, rotateY * Math.PI / 180, 0);
+        });
 
-        
-        
+        setupTextField("objNameTextField",(any)=>{
+            console.log("new value: " + any.target.value);
+            (this._container.initialObjects.objName as SharedMap).set(objNameKey,any.target.value);
+
+            console.log("new share value: " + (this._container.initialObjects.objName as SharedMap).get(objNameKey));
+        });
+
     }
-       
+
 
     async start() {
         if (Utils.runningInTeams()) {
