@@ -38,7 +38,7 @@ const appTemplate = `
     <div id="appRoot">
         <div id="inkingRoot" >
             <img id="backgroundImage" src="https://bing.com/th?id=OHR.SeaAngel_EN-US5531672696_1920x1080.jpg&amp;rf=LaDigue_1920x1080.jpg&amp;pid=hp"
-                 alt="Mark Knopfler playing guitar" style="visibility: hidden;">
+                  style="visibility: hidden;">
             <canvas id="blcanvas" ></canvas>
             <div id="inkingHost" ></div>
         </div>     
@@ -74,6 +74,10 @@ const appTemplate = `
             <div class="toolbar">
                 <fluent-button appearance="accent" id="btnZoomOut" style="margin-left: 20px;">Zoom out</fluent-button>
                 <fluent-button appearance="accent" id="btnZoomIn" style="margin-left: 20px;">Zoom in</fluent-button>
+                <fluent-button appearance="accent" id="btnHideInk" style="margin-left: 20px;">Hide Ink</fluent-button>
+                <fluent-button appearance="accent" id="btnDisplayInk" style="margin-left: 20px;">Display Ink</fluent-button>
+                <fluent-button appearance="accent" id="btnHide3D" style="margin-left: 20px;">Hide 3D</fluent-button>
+                <fluent-button appearance="accent" id="btnDisplay3D" style="margin-left: 20px;">Display 3D</fluent-button>
                 <fluent-button appearance="accent" id="btnResetView" style="margin-left: 20px;">Reset view</fluent-button>             
             </div>
             <div class="toolbar">
@@ -105,7 +109,8 @@ export class StageView extends View {
     private containerID!: string;
     public static glbObj: AbstractMesh;
     public static originalScale: Vector3 ;
-
+    public static camera: ArcRotateCamera;
+    
     private offsetBy(x: number, y: number) {
         this._inkingManager.offset = {
             x: this._inkingManager.offset.x + x,
@@ -168,8 +173,8 @@ export class StageView extends View {
             var engine = new Engine(canvas, true);
             var scene = new Scene(engine);
 
-            var camera: ArcRotateCamera = new ArcRotateCamera("Camera", Math.PI / 2, Math.PI / 2, 2, Vector3.Zero(), scene);
-            camera.attachControl(canvas, true);
+            StageView.camera = new ArcRotateCamera("Camera", Math.PI / 2, Math.PI / 2, 2, Vector3.Zero(), scene);
+            StageView.camera.attachControl(canvas, true);
             var light1: HemisphericLight = new HemisphericLight("light1", new Vector3(1, 1, 0), scene);
 
             /* hide/show the Inspector
@@ -387,6 +392,7 @@ export class StageView extends View {
                 this._inkingManager.offset.y -
                 (this._backgroundImageHeight / 2) * this._inkingManager.scale +
                 "px";
+
         }
     }
 
@@ -509,6 +515,18 @@ export class StageView extends View {
             StageView.glbObj.scaling = StageView.originalScale;
             StageView.glbObj.position.x = 0;
             StageView.glbObj.position.y = 0;
+            StageView.glbObj.position.z = 0;
+            StageView.camera.alpha =  Math.PI/2;
+            StageView.camera.beta =  Math.PI/2;
+            StageView.camera.radius =  2;
+
+            const element1  = document.getElementById("inkingHost");
+            if(element1)
+            element1.style.visibility = "visible";
+
+            const element2  = document.getElementById("blcanvas");
+            if(element2)
+            element2.style.visibility = "visible";
 
             this.updateBackgroundImagePosition();
         });
@@ -572,6 +590,30 @@ export class StageView extends View {
             (this._container.initialObjects.objName as SharedMap).set(objNameKey,any.target.value);
 
             console.log("new share value: " + (this._container.initialObjects.objName as SharedMap).get(objNameKey));
+        });
+
+        setupButton("btnHideInk", () => {
+            const element  = document.getElementById("inkingHost");
+            if(element)
+            element.style.visibility = "hidden";
+        });
+
+        setupButton("btnDisplayInk", () => {
+            const element  = document.getElementById("inkingHost");
+            if(element) 
+             element.style.visibility = "visible";
+        });
+
+        setupButton("btnHide3D", () => {
+            const element  = document.getElementById("blcanvas");
+            if(element)
+            element.style.visibility = "hidden";
+        });
+
+        setupButton("btnDisplay3D", () => {
+            const element  = document.getElementById("blcanvas");
+            if(element)
+            element.style.visibility = "visible";
         });
 
     }
