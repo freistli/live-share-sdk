@@ -36,13 +36,17 @@ import { Engine, Scene, ArcRotateCamera, Vector3, HemisphericLight, Mesh, MeshBu
 
 const appTemplate = `   
     <div id="appRoot">
-        <div id="inkingRoot">
+        <div id="inkingRoot" >
             <img id="backgroundImage" src="https://bing.com/th?id=OHR.SeaAngel_EN-US5531672696_1920x1080.jpg&amp;rf=LaDigue_1920x1080.jpg&amp;pid=hp"
                  alt="Mark Knopfler playing guitar" style="visibility: hidden;">
-            <canvas id="blcanvas"></canvas>
-            <div id="inkingHost"></div>
-        </div>
-        <div id="buttonStrip">
+            <canvas id="blcanvas" ></canvas>
+            <div id="inkingHost" ></div>
+        </div>     
+        <fluent-horizontal-scroll id="scrollPane" >
+        <fluent-card style="margin-top: 10px;height: 300px;flex: 3">Live Share View Operation       
+            <div class="toolbar">
+            <fluent-text-field id="objNameTextField"  placeholder="model name" ></fluent-text-field>
+            </div>  
             <div class="toolbar">
                 <fluent-button appearance="accent" id="btnStroke">Stroke</fluent-button>
                 <fluent-button appearance="accent" id="btnArrow">Arrow</fluent-button>
@@ -60,25 +64,33 @@ const appTemplate = `
                 <fluent-button appearance="accent" id="btnBlue">Blue</fluent-button>
                 <fluent-button appearance="accent" id="btnYellow">Yellow</fluent-button>
             </div>
-            <div class="toolbar">
-                <fluent-button appearance="accent" id="btnZoomOut">Zoom out</fluent-button>
-                <fluent-button appearance="accent" id="btnZoomIn">Zoom in</fluent-button>
-                <fluent-button appearance="accent" id="btnOffsetLeft" style="margin-left: 20px;">Offset left</fluent-button>
-                <fluent-button appearance="accent" id="btnOffsetUp">Offset up</fluent-button>
-                <fluent-button appearance="accent" id="btnOffsetRight">Offset right</fluent-button>
-                <fluent-button appearance="accent" id="btnOffsetDown">Offset down</fluent-button>
-                <fluent-button appearance="accent" id="btnResetView" style="margin-left: 20px;">Reset view</fluent-button>
-            </div>
+            
             <div class="toolbar">
             <fluent-button appearance="accent" id="btnRotateLeft">Rotate AntiClockwise</fluent-button>            
             <fluent-button appearance="accent" id="btnRotateRight">Rotate Clockwise</fluent-button>
-            </div>
-            
+            </div>            
+          </fluent-card>
+          <fluent-card style="margin-top: 10px;height: 300px;flex: 2">Personal View Operation         
             <div class="toolbar">
-            <fluent-text-field id="objNameTextField" appearance="outline" placeholder="bee01.glb" ></fluent-text-field>
+                <fluent-button appearance="accent" id="btnZoomOut" style="margin-left: 20px;">Zoom out</fluent-button>
+                <fluent-button appearance="accent" id="btnZoomIn" style="margin-left: 20px;">Zoom in</fluent-button>
+                <fluent-button appearance="accent" id="btnResetView" style="margin-left: 20px;">Reset view</fluent-button>             
             </div>
-        </div>        
-        <div id="debugzone"></div>
+            <div class="toolbar">
+                <fluent-button appearance="accent" id="btnOffsetUp" style="margin-left: 120px;">Offset up</fluent-button>   
+            </div>
+            <div class="toolbar">                
+                <fluent-button appearance="accent" id="btnOffsetLeft" style="margin-left: 20px;">Offset left</fluent-button>
+                <fluent-button appearance="accent" id="btnOffsetRight" style="margin-left: 120px;">Offset right</fluent-button>          
+            </div>
+            <div class="toolbar">  
+            <fluent-button appearance="accent" id="btnOffsetDown" style="margin-left: 120px;">Offset down</fluent-button>
+            </div>               
+        </fluent-card>  
+        <fluent-card style="margin-top: 10px;height: 300px;flex: 2">  Debug Info
+            <div id="debugzone" ></div>
+        </fluent-card>  
+        </fluent-horizontal-scroll>      
     </div>`;
 
 const objRotateYKey = "RotateY";
@@ -471,15 +483,19 @@ export class StageView extends View {
 
         setupButton("btnOffsetLeft", () => {
             this.offsetBy(-10, 0);
+            StageView.glbObj.position.x += 0.05;
         });
         setupButton("btnOffsetUp", () => {
             this.offsetBy(0, -10);
+            StageView.glbObj.position.y += 0.05;
         });
         setupButton("btnOffsetRight", () => {
             this.offsetBy(10, 0);
+            StageView.glbObj.position.x -= 0.05;
         });
         setupButton("btnOffsetDown", () => {
             this.offsetBy(0, 10);
+            StageView.glbObj.position.y -= 0.05;
         });
 
         setupButton("btnResetView", () => {
@@ -491,6 +507,8 @@ export class StageView extends View {
             this._inkingManager.scale = 1;
 
             StageView.glbObj.scaling = StageView.originalScale;
+            StageView.glbObj.position.x = 0;
+            StageView.glbObj.position.y = 0;
 
             this.updateBackgroundImagePosition();
         });

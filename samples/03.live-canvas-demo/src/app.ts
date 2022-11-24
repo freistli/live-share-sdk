@@ -9,10 +9,29 @@ import { StageView } from "./stage-view";
 import { SidebarView } from "./sidebar-view";
 import * as Utils from "./utils";
 import { parseColorHexRGB } from "@microsoft/fast-colors"
-import { fluentButton, fluentSelect, fluentTextField, accentFillRest,accentFillActive,accentFillHover,fluentOption, provideFluentDesignSystem,
-    baseLayerLuminance,bodyFont, typeRampPlus1FontSize, SwatchRGB } from '@fluentui/web-components';
+import { fluentButton, fluentSelect, fluentTextField, fluentAnchor,fluentCard,
+    accentFillRest,fluentHorizontalScroll,
+    accentFillActive,accentFillHover,fluentOption, provideFluentDesignSystem,
+    baseLayerLuminance,bodyFont, typeRampPlus1FontSize, SwatchRGB, HorizontalScroll } from '@fluentui/web-components';
+import { html } from "@microsoft/fast-element";
 
-     provideFluentDesignSystem().register([fluentButton(),fluentOption(),fluentSelect(),fluentTextField()]);
+     provideFluentDesignSystem().register([fluentButton(),fluentOption(),fluentSelect(),
+        fluentTextField(),fluentAnchor(),fluentCard(),
+        fluentHorizontalScroll({
+            nextFlipper: html<HorizontalScroll>`
+                <fluent-flipper
+                    @click="${x => x.scrollToNext()}"
+                    aria-hidden="${x => x.flippersHiddenFromAT}"
+                ></fluent-flipper>
+            `,
+            previousFlipper: html<HorizontalScroll>`
+                <fluent-flipper
+                    @click="${x => x.scrollToPrevious()}"
+                    direction="previous"
+                    aria-hidden="${x => x.flippersHiddenFromAT}"
+                ></fluent-flipper>
+            `
+        })]);
 
 if(Utils.runningInTeams())
 {   
