@@ -13,11 +13,18 @@ import { AzureClient, AzureClientProps } from "@fluidframework/azure-client";
 import { IFluidContainer, SharedMap, SharedString } from "fluid-framework";
 import { LiveCanvas } from "@microsoft/live-share-canvas";
 
+export  class arcCamera{
+    alpha!: number;
+    beta!: number;
+    radius!: number;
+}
+
 export const containerSchema = {
     initialObjects: {
         liveCanvas: LiveCanvas,
         objRotateY: SharedMap,
-        objName: SharedMap
+        objName: SharedMap,
+        cameraObj: SharedMap
     },
 };
 export const remoteClientOptions: ILiveShareClientOptions | any =

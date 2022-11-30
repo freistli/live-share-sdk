@@ -23,10 +23,11 @@ import { AzureFunctionTokenProvider } from "./GetFluidToken";
 
 import { AzureClient, AzureClientProps } from "@fluidframework/azure-client";
 import { ConfigView } from "./config-view";
-import { containerSchema, inSecureClientOptions, remoteClientOptions, SidebarView } from "./sidebar-view";
+import { arcCamera, containerSchema, inSecureClientOptions, remoteClientOptions, SidebarView } from "./sidebar-view";
 
 import "@babylonjs/loaders/glTF";
-import { Engine, Scene, ArcRotateCamera, Vector3, HemisphericLight, Mesh, MeshBuilder, SceneLoader, AbstractMesh } from "@babylonjs/core";
+import { ExecuteCodeAction, ActionManager, Engine, Scene, ArcRotateCamera, Vector3, HemisphericLight, Mesh, MeshBuilder, SceneLoader, AbstractMesh, InterpolateValueAction } from "@babylonjs/core";
+
 
 /**
  * Other images
@@ -39,7 +40,7 @@ const appTemplate = `
         <div id="inkingRoot" >
             <img id="backgroundImage" src="https://bing.com/th?id=OHR.SeaAngel_EN-US5531672696_1920x1080.jpg&amp;rf=LaDigue_1920x1080.jpg&amp;pid=hp"
                   style="visibility: hidden;">
-            <canvas id="blcanvas" ></canvas>
+            <canvas id="blcanvas" style="height: 100%;weight: 100%;"></canvas>
             <div id="inkingHost" ></div>
         </div>     
         <fluent-horizontal-scroll id="scrollPane" >
@@ -99,6 +100,7 @@ const appTemplate = `
 
 const objRotateYKey = "RotateY";
 const objNameKey = "objName";
+const cameraKey = "arcCamera";
 
 export class StageView extends View {
     private _inkingManager!: InkingManager;
@@ -161,7 +163,7 @@ export class StageView extends View {
 
 
 
-    private updateCanvas(objRotateY: SharedMap, objName: SharedMap) {
+    private updateCanvas(objRotateY: SharedMap, objName: SharedMap, mainCamera: SharedMap) {
 
         
         // create the canvas html element and attach it to the webpage
@@ -177,6 +179,10 @@ export class StageView extends View {
             StageView.camera.attachControl(canvas, true);
             var light1: HemisphericLight = new HemisphericLight("light1", new Vector3(1, 1, 0), scene);
 
+            StageView.camera.alpha =  Math.PI/2;
+            StageView.camera.beta =  Math.PI/2;
+            StageView.camera.radius =  2;
+
             /* hide/show the Inspector
             window.addEventListener("keydown", (ev) => {
                 // Shift+Ctrl+Alt+I
@@ -189,9 +195,34 @@ export class StageView extends View {
                 }
             });
             */
+           /*
+            StageView.camera.onViewMatrixChangedObservable.add(()=>{
+                 
+                console.log(StageView.camera.alpha + " " + StageView.camera.beta + " " + StageView.camera.radius);
+                 
+            });
+           */
+
+            scene.onPointerMove= (p) =>{
+                if (p.buttons === 1)
+              {
+                const camera = this._container.initialObjects.cameraObj as SharedMap;
+                if (camera != null)
+                {
+                    const arccamera = new arcCamera();
+                    arccamera.alpha  = StageView.camera.alpha;
+                    arccamera.beta  = StageView.camera.beta;
+                    arccamera.radius  = StageView.camera.radius;
+                    //const json = JSON.stringify(arccamera);
+                    camera.set(cameraKey,arccamera);
+                }
+              }
+            }
+
             const importMesh = () => {
                 const rotateY = (this._container.initialObjects.objRotateY as SharedMap)?.get(objRotateYKey);
-                const objname = (this._container.initialObjects.objName as SharedMap).get(objNameKey) ?? "bee01.glb";
+                const objname = (this._container.initialObjects.objName as SharedMap).get(objNameKey) ?? "avatar.glb";
+                
                 SceneLoader.ImportMesh("", "https://fllivesharecanvas.azurewebsites.net/", objname, scene, function (newMeshes, particleSystems, skeletons, animationGroups) {
 
                     if (newMeshes) {
@@ -212,6 +243,9 @@ export class StageView extends View {
                             StageView.glbObj.rotation = new Vector3(0, rotateY * Math.PI / 180, 0);
                         else
                             StageView.glbObj.rotation = new Vector3(0, Math.PI, 0);
+
+                               
+                        
                     }
                 });
             };
@@ -238,6 +272,18 @@ export class StageView extends View {
             };
 
             objName?.on("valueChanged", updateGlbObj);
+
+            const updateCamera = () => {
+                const camera = this._container.initialObjects.cameraObj as SharedMap;
+                const arccamera = camera.get(cameraKey);
+               
+                StageView.camera.alpha =  arccamera.alpha;
+                StageView.camera.beta =  arccamera.beta;
+                StageView.camera.radius =  arccamera.radius;
+                console.log("update camera");
+            };
+
+            mainCamera?.on("valueChanged", updateCamera);
 
             // run the main render loop
             engine.runRenderLoop(() => {
@@ -353,7 +399,12 @@ export class StageView extends View {
 
         this.updateBackgroundImagePosition();
 
-        this.updateCanvas(this._container.initialObjects.objRotateY as SharedMap, this._container.initialObjects.objName as SharedMap);
+        this.updateCanvas(this._container.initialObjects.objRotateY as SharedMap, 
+                         this._container.initialObjects.objName as SharedMap,
+                         this._container.initialObjects.cameraObj as SharedMap);
+
+        
+        this._inkingManager.penBrush.color = { r: 255, g: 252, b: 0 };
     }
 
     private _backgroundImageWidth?: number;
@@ -446,6 +497,7 @@ export class StageView extends View {
                 textField.onchange = onChange;
             }
         };
+        
 
         setupButton("btnStroke", () => {
             this._inkingManager.tool = InkingTool.pen;
