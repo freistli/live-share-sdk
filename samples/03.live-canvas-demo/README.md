@@ -1,6 +1,13 @@
-# Live Canvas demo
+# Live Canvas POC
 
-This repository contains a simple demo of how to use `LiveCanvas` and `InkingManager` to implement a collaborative inking surface.
+Starting from the simple demo of [the simple live canvas demo](https://github.com/microsoft/live-share-sdk/tree/main/samples/javascript/03.live-canvas-demo), this repository has been customized as an advanced POC of how to use `LiveCanvas`, `Fluid UI/Web Component`, `BabyLon Js` and `InkingManager` to implement a collaborative inking 2D/3D objects (3D rendering works in Teams Web App). It also supports switch different Fluid Back End Fluid Services. 
+
+![image](https://user-images.githubusercontent.com/8623897/204968966-d8a78937-2b0d-43a2-b0c2-c2cf943dcf35.png)
+
+![image](https://user-images.githubusercontent.com/8623897/204969724-ad141d92-01d3-4b1f-bdb3-a84251731a40.png)
+
+
+
 
 ## Testing Locally in Browser
 
