@@ -6,7 +6,7 @@
 import * as Teams from "@microsoft/teams-js";
 import {
     ILiveShareClientOptions,
-    LiveShareClient,
+    LiveShareClient, TestLiveShareHost 
 } from "@microsoft/live-share";
 import {
     InkingManager,
@@ -15,15 +15,19 @@ import {
     LiveCanvas,
 } from "@microsoft/live-share-canvas";
 import { InsecureTokenProvider } from "@fluidframework/test-client-utils";
-import { IFluidContainer } from "fluid-framework";
+import { IFluidContainer, SharedMap, SharedString } from "fluid-framework";
 import * as Utils from "./utils";
 import { View } from "./view";
 import { getRandomUserInfo } from "./random-userInfo";
-import { AzureFunctionTokenProvider} from "./GetFluidToken";
+import { AzureFunctionTokenProvider } from "./GetFluidToken";
 
 import { AzureClient, AzureClientProps } from "@fluidframework/azure-client";
 import { ConfigView } from "./config-view";
-import { inSecureClientOptions, remoteClientOptions, SidebarView } from "./sidebar-view";
+import { arcCamera, containerSchema, inSecureClientOptions, remoteClientOptions, SidebarView } from "./sidebar-view";
+
+import "@babylonjs/loaders/glTF";
+import { ExecuteCodeAction, ActionManager, Engine, Scene, ArcRotateCamera, Vector3, HemisphericLight, Mesh, MeshBuilder, SceneLoader, AbstractMesh, InterpolateValueAction } from "@babylonjs/core";
+
 
 /**
  * Other images
@@ -33,12 +37,17 @@ import { inSecureClientOptions, remoteClientOptions, SidebarView } from "./sideb
 
 const appTemplate = `   
     <div id="appRoot">
-        <div id="inkingRoot">
+        <div id="inkingRoot" >
             <img id="backgroundImage" src="https://bing.com/th?id=OHR.SeaAngel_EN-US5531672696_1920x1080.jpg&amp;rf=LaDigue_1920x1080.jpg&amp;pid=hp"
-                 alt="Mark Knopfler playing guitar" style="visibility: hidden;">
-            <div id="inkingHost"></div>
-        </div>
-        <div id="buttonStrip">
+                  style="visibility: hidden;">
+            <canvas id="blcanvas" style="height: 100%;weight: 100%;"></canvas>
+            <div id="inkingHost" ></div>
+        </div>     
+        <fluent-horizontal-scroll id="scrollPane" >
+        <fluent-card style="margin-top: 10px;height: 300px;flex: 3">Live Share View Operation       
+            <div class="toolbar">
+            <fluent-text-field id="objNameTextField"  placeholder="model name" ></fluent-text-field>
+            </div>  
             <div class="toolbar">
                 <fluent-button appearance="accent" id="btnStroke">Stroke</fluent-button>
                 <fluent-button appearance="accent" id="btnArrow">Arrow</fluent-button>
@@ -56,33 +65,54 @@ const appTemplate = `
                 <fluent-button appearance="accent" id="btnBlue">Blue</fluent-button>
                 <fluent-button appearance="accent" id="btnYellow">Yellow</fluent-button>
             </div>
+            
             <div class="toolbar">
-                <fluent-button appearance="accent" id="btnZoomOut">Zoom out</fluent-button>
-                <fluent-button appearance="accent" id="btnZoomIn">Zoom in</fluent-button>
-                <fluent-button appearance="accent" id="btnOffsetLeft" style="margin-left: 20px;">Offset left</fluent-button>
-                <fluent-button appearance="accent" id="btnOffsetUp">Offset up</fluent-button>
-                <fluent-button appearance="accent" id="btnOffsetRight">Offset right</fluent-button>
-                <fluent-button appearance="accent" id="btnOffsetDown">Offset down</fluent-button>
-                <fluent-button appearance="accent" id="btnResetView" style="margin-left: 20px;">Reset view</fluent-button>
+            <fluent-button appearance="accent" id="btnRotateLeft">Rotate AntiClockwise</fluent-button>            
+            <fluent-button appearance="accent" id="btnRotateRight">Rotate Clockwise</fluent-button>
+            </div>            
+          </fluent-card>
+          <fluent-card style="margin-top: 10px;height: 300px;flex: 2">Personal View Operation         
+            <div class="toolbar">
+                <fluent-button appearance="accent" id="btnZoomOut" style="margin-left: 20px;">Zoom out</fluent-button>
+                <fluent-button appearance="accent" id="btnZoomIn" style="margin-left: 20px;">Zoom in</fluent-button>
+                <fluent-button appearance="accent" id="btnHideInk" style="margin-left: 20px;">Hide Ink</fluent-button>
+                <fluent-button appearance="accent" id="btnDisplayInk" style="margin-left: 20px;">Display Ink</fluent-button>
+                <fluent-button appearance="accent" id="btnHide3D" style="margin-left: 20px;">Hide 3D</fluent-button>
+                <fluent-button appearance="accent" id="btnDisplay3D" style="margin-left: 20px;">Display 3D</fluent-button>
+                <fluent-button appearance="accent" id="btnResetView" style="margin-left: 20px;">Reset view</fluent-button>             
             </div>
-        </div>        
-        <div id="debugzone"></div>
+            <div class="toolbar">
+                <fluent-button appearance="accent" id="btnOffsetUp" style="margin-left: 120px;">Offset up</fluent-button>   
+            </div>
+            <div class="toolbar">                
+                <fluent-button appearance="accent" id="btnOffsetLeft" style="margin-left: 20px;">Offset left</fluent-button>
+                <fluent-button appearance="accent" id="btnOffsetRight" style="margin-left: 120px;">Offset right</fluent-button>          
+            </div>
+            <div class="toolbar">  
+            <fluent-button appearance="accent" id="btnOffsetDown" style="margin-left: 120px;">Offset down</fluent-button>
+            </div>               
+        </fluent-card>  
+        <fluent-card style="margin-top: 10px;height: 300px;flex: 2">  Debug Info
+            <div id="debugzone" ></div>
+        </fluent-card>  
+        </fluent-horizontal-scroll>      
     </div>`;
 
-const containerSchema = {
-    initialObjects: {
-        liveCanvas: LiveCanvas,
-    },
-};
+const objRotateYKey = "RotateY";
+const objNameKey = "objName";
+const cameraKey = "arcCamera";
 
 export class StageView extends View {
     private _inkingManager!: InkingManager;
     private _container!: IFluidContainer;
-    private client! : LiveShareClient;
-    private fluidClient! : AzureClient;
-    private fluidOption! : string;
-    private containerID! : string;
-
+    private client!: LiveShareClient;
+    private fluidClient!: AzureClient;
+    private fluidOption!: string;
+    private containerID!: string;
+    public static glbObj: AbstractMesh;
+    public static originalScale: Vector3 ;
+    public static camera: ArcRotateCamera;
+    
     private offsetBy(x: number, y: number) {
         this._inkingManager.offset = {
             x: this._inkingManager.offset.x + x,
@@ -99,57 +129,188 @@ export class StageView extends View {
     private _hostResizeObserver!: ResizeObserver;
     private _userInfo!: IUserInfo;
 
-    async createClientandContainer( options : ILiveShareClientOptions|any)
-    {
-        this.fluidClient = new AzureClient(options);          
+    async createClientandContainer(options: ILiveShareClientOptions | any) {
+        this.fluidClient = new AzureClient(options);
 
-            Utils.loadTemplate(
-                `<div>Before Join Container</div>`,
-                document.body
-            );
+        Utils.loadTemplate(
+            `<div>Before Join Container</div>`,
+            document.body
+        );
 
-            if(this.containerID!="empty")
-            {
-                this._container = await this.getContainer(this.containerID);
-            }
-            else{
-                    const id = await this.createContainer();
-                    this._container = await this.getContainer(id);
-            }
-            Utils.loadTemplate(
-                `<div>After Join Container</div>`,
-                document.body
-            );
+        if (this.containerID != "empty") {
+            this._container = await this.getContainer(this.containerID);
+        }
+        else {
+            const id = await this.createContainer();
+            this._container = await this.getContainer(id);
+        }
+        Utils.loadTemplate(
+            `<div>After Join Container</div>`,
+            document.body
+        );
     }
 
-    async  createContainer() : Promise<string> {
+    async createContainer(): Promise<string> {
         const { container } = await this.fluidClient.createContainer(containerSchema);
         const containerId = await container.attach();
         return containerId;
     };
 
-    async  getContainer(id : string) : Promise<IFluidContainer> {
+    async getContainer(id: string): Promise<IFluidContainer> {
         const { container } = await this.fluidClient.getContainer(id, containerSchema);
         return container;
     };
 
-    private async internalStart() {
+
+
+    private updateCanvas(objRotateY: SharedMap, objName: SharedMap, mainCamera: SharedMap) {
+
         
+        // create the canvas html element and attach it to the webpage
+        var canvas = document.getElementById("blcanvas") as HTMLCanvasElement;
 
-            const localClientOptions: ILiveShareClientOptions | any =
-            {
-                connection: {
-                    type: "local",
-                    tokenProvider: new InsecureTokenProvider("", {
-                        id: "123",
-                    }),
-                    endpoint: "http://localhost:7070",
+        if (canvas) {
+
+            // initialize babylon scene and engine
+            var engine = new Engine(canvas, true);
+            var scene = new Scene(engine);
+
+            StageView.camera = new ArcRotateCamera("Camera", Math.PI / 2, Math.PI / 2, 2, Vector3.Zero(), scene);
+            StageView.camera.attachControl(canvas, true);
+            var light1: HemisphericLight = new HemisphericLight("light1", new Vector3(1, 1, 0), scene);
+
+            StageView.camera.alpha =  Math.PI/2;
+            StageView.camera.beta =  Math.PI/2;
+            StageView.camera.radius =  2;
+
+            /* hide/show the Inspector
+            window.addEventListener("keydown", (ev) => {
+                // Shift+Ctrl+Alt+I
+                if (ev.shiftKey && ev.ctrlKey && ev.altKey && ev.keyCode === 73) {
+                    if (scene.debugLayer.isVisible()) {
+                        scene.debugLayer.hide();
+                    } else {
+                        scene.debugLayer.show();
+                    }
                 }
+            });
+            */
+           /*
+            StageView.camera.onViewMatrixChangedObservable.add(()=>{
+                 
+                console.log(StageView.camera.alpha + " " + StageView.camera.beta + " " + StageView.camera.radius);
+                 
+            });
+           */
 
+            scene.onPointerMove= (p) =>{
+                if (p.buttons === 1)
+              {
+                const camera = this._container.initialObjects.cameraObj as SharedMap;
+                if (camera != null)
+                {
+                    const arccamera = new arcCamera();
+                    arccamera.alpha  = StageView.camera.alpha;
+                    arccamera.beta  = StageView.camera.beta;
+                    arccamera.radius  = StageView.camera.radius;
+                    //const json = JSON.stringify(arccamera);
+                    camera.set(cameraKey,arccamera);
+                }
+              }
+            }
+
+            const importMesh = () => {
+                const rotateY = (this._container.initialObjects.objRotateY as SharedMap)?.get(objRotateYKey);
+                const objname = (this._container.initialObjects.objName as SharedMap).get(objNameKey) ?? "avatar.glb";
+                
+                SceneLoader.ImportMesh("", "https://fllivesharecanvas.azurewebsites.net/", objname, scene, function (newMeshes, particleSystems, skeletons, animationGroups) {
+
+                    if (newMeshes) {
+                        console.log("load new mesh: "+objname);
+                        StageView.glbObj = newMeshes[0];
+
+                        //Scale the model down
+                        if (objname.includes('bee'))
+                            StageView.glbObj.scaling.scaleInPlace(0.07);
+                        else if (objname.includes('avarar'))
+                            StageView.glbObj.scaling.scaleInPlace(2);
+                        else
+                            StageView.glbObj.scaling.scaleInPlace(1);
+
+                        StageView.originalScale = StageView.glbObj.scaling;
+
+                        if (rotateY)
+                            StageView.glbObj.rotation = new Vector3(0, rotateY * Math.PI / 180, 0);
+                        else
+                            StageView.glbObj.rotation = new Vector3(0, Math.PI, 0);
+
+                               
+                        
+                    }
+                });
             };
 
-        if (Utils.runningInTeams() == true)
+            importMesh();
+
+            const updateGlbObjRotation = () => {
+                const result = (this._container.initialObjects.objRotateY as SharedMap).get(objRotateYKey);
+                if(StageView.glbObj != null && StageView.glbObj.isDisposed() == false)     { 
+                StageView.glbObj.rotation = new Vector3(0, result * Math.PI / 180, 0);
+                }
+            };
+
+            objRotateY?.on("valueChanged", updateGlbObjRotation);
+
+            const updateGlbObj = () => {
+                console.log("update glb obj"); 
+                
+                if(StageView.glbObj != null && StageView.glbObj.isDisposed() == false)     {                          
+                scene.removeMesh(StageView.glbObj); 
+                StageView.glbObj.dispose();
+                }
+                importMesh();
+            };
+
+            objName?.on("valueChanged", updateGlbObj);
+
+            const updateCamera = () => {
+                const camera = this._container.initialObjects.cameraObj as SharedMap;
+                const arccamera = camera.get(cameraKey);
+               
+                StageView.camera.alpha =  arccamera.alpha;
+                StageView.camera.beta =  arccamera.beta;
+                StageView.camera.radius =  arccamera.radius;
+                console.log("update camera");
+            };
+
+            mainCamera?.on("valueChanged", updateCamera);
+
+            // run the main render loop
+            engine.runRenderLoop(() => {
+                scene.render();
+            });
+        }
+    }
+
+    private async internalStart() {
+
+        const host = Utils.runningInTeams()
+            ? Teams.LiveShareHost.create()
+            : TestLiveShareHost.create();
+
+        const localClientOptions: ILiveShareClientOptions | any =
         {
+            connection: {
+                type: "local",
+                tokenProvider: new InsecureTokenProvider("", {
+                    id: "123",
+                }),
+                endpoint: "http://localhost:7070",
+            }
+
+        };
+
+        if (Utils.runningInTeams() == true) {
             Utils.loadTemplate(
                 `<div>Before Initialize</div>`,
                 document.body
@@ -166,38 +327,34 @@ export class StageView extends View {
                 `<div>Before Join Container</div>`,
                 document.body
             );
-     
+
 
             const fuildOption = this.fluidOption;
 
             Utils.loadTemplate(
-                `<div>Fluid Option is `+fuildOption +`</div>`,
+                `<div>Fluid Option is ` + fuildOption + `</div>`,
                 document.body
             );
 
-            if (fuildOption == "TeamsDefault")
-            {
-                this.client = new LiveShareClient();
-            
+            if (fuildOption == "TeamsDefault") {
+                this.client = new LiveShareClient(host);
+
                 this._container = (
                     await this.client.joinContainer(containerSchema)
                 ).container;
             }
-            else  if (fuildOption == "Local")
-            {
-                this.client = new LiveShareClient(localClientOptions);
-            
+            else if (fuildOption == "Local") {
+                this.client = new LiveShareClient(host,localClientOptions);
+
                 this._container = (
                     await this.client.joinContainer(containerSchema)
                 ).container;
             }
-            else  if (fuildOption == "RemoteInsecure")
-            {
+            else if (fuildOption == "RemoteInsecure") {
                 await this.createClientandContainer(inSecureClientOptions);
             }
-            
-            else  if (fuildOption == "RemoteSecure")
-            {
+
+            else if (fuildOption == "RemoteSecure") {
                 await this.createClientandContainer(remoteClientOptions);
             }
 
@@ -206,15 +363,14 @@ export class StageView extends View {
                 document.body
             );
         }
-       else
-        {
-            this.client = new LiveShareClient(localClientOptions); 
+        else {
+            this.client = new LiveShareClient(host,localClientOptions);
             this._container = await (await this.client.joinContainer(containerSchema)).container;
 
             //await this.createClientandContainer(remoteClientOptions);
-        }  
-        
-      
+        }
+
+
 
         const inkingHost = document.getElementById("inkingHost");
 
@@ -242,6 +398,13 @@ export class StageView extends View {
         }
 
         this.updateBackgroundImagePosition();
+
+        this.updateCanvas(this._container.initialObjects.objRotateY as SharedMap, 
+                         this._container.initialObjects.objName as SharedMap,
+                         this._container.initialObjects.cameraObj as SharedMap);
+
+        
+        this._inkingManager.penBrush.color = { r: 255, g: 252, b: 0 };
     }
 
     private _backgroundImageWidth?: number;
@@ -258,10 +421,10 @@ export class StageView extends View {
         ) {
             backgroundImage.style.removeProperty("visibility");
 
-            if(this.fluidOption == "RemoteInsecure")
-               backgroundImage.src = "https://bing.com/th?id=OHR.BridgeofSighs_EN-US5335369208_1920x1080.jpg&rf=LaDigue_1920x1080.jpg&pid=hp";
-            if(this.fluidOption == "RemoteSecure")
-               backgroundImage.src = "https://bing.com/th?id=OHR.BrockenSpecter_EN-US5247366251_1920x1080.jpg&amp;rf=LaDigue_1920x1080.jpg&amp;pid=hp";
+            if (this.fluidOption == "RemoteInsecure")
+                backgroundImage.src = "https://bing.com/th?id=OHR.BridgeofSighs_EN-US5335369208_1920x1080.jpg&rf=LaDigue_1920x1080.jpg&pid=hp";
+            if (this.fluidOption == "RemoteSecure")
+                backgroundImage.src = "https://bing.com/th?id=OHR.BrockenSpecter_EN-US5247366251_1920x1080.jpg&amp;rf=LaDigue_1920x1080.jpg&amp;pid=hp";
 
             const actualWidth =
                 this._backgroundImageWidth * this._inkingManager.scale;
@@ -280,10 +443,13 @@ export class StageView extends View {
                 this._inkingManager.offset.y -
                 (this._backgroundImageHeight / 2) * this._inkingManager.scale +
                 "px";
+
         }
     }
 
-    constructor(fluidOption:string,containerID:string) {
+
+
+    constructor(fluidOption: string, containerID: string) {
         super();
 
         this.fluidOption = fluidOption;
@@ -292,8 +458,8 @@ export class StageView extends View {
         getRandomUserInfo().then(
             (u) => this._userInfo = u
         );
- 
-         Utils.loadTemplate(appTemplate, document.body);
+
+        Utils.loadTemplate(appTemplate, document.body);
 
         const backgroundImage = document.getElementById(
             "backgroundImage"
@@ -323,6 +489,15 @@ export class StageView extends View {
                 button.onclick = onClick;
             }
         };
+
+        const setupTextField = (id: string, onChange: (event: any) => void) => {
+            const textField = document.getElementById(id);
+
+            if (textField) {
+                textField.onchange = onChange;
+            }
+        };
+        
 
         setupButton("btnStroke", () => {
             this._inkingManager.tool = InkingTool.pen;
@@ -366,15 +541,19 @@ export class StageView extends View {
 
         setupButton("btnOffsetLeft", () => {
             this.offsetBy(-10, 0);
+            StageView.glbObj.position.x += 0.05;
         });
         setupButton("btnOffsetUp", () => {
             this.offsetBy(0, -10);
+            StageView.glbObj.position.y += 0.05;
         });
         setupButton("btnOffsetRight", () => {
             this.offsetBy(10, 0);
+            StageView.glbObj.position.x -= 0.05;
         });
         setupButton("btnOffsetDown", () => {
             this.offsetBy(0, 10);
+            StageView.glbObj.position.y -= 0.05;
         });
 
         setupButton("btnResetView", () => {
@@ -385,19 +564,38 @@ export class StageView extends View {
 
             this._inkingManager.scale = 1;
 
+            StageView.glbObj.scaling = StageView.originalScale;
+            StageView.glbObj.position.x = 0;
+            StageView.glbObj.position.y = 0;
+            StageView.glbObj.position.z = 0;
+            StageView.camera.alpha =  Math.PI/2;
+            StageView.camera.beta =  Math.PI/2;
+            StageView.camera.radius =  2;
+
+            const element1  = document.getElementById("inkingHost");
+            if(element1)
+            element1.style.visibility = "visible";
+
+            const element2  = document.getElementById("blcanvas");
+            if(element2)
+            element2.style.visibility = "visible";
+
             this.updateBackgroundImagePosition();
         });
+
 
         setupButton("btnZoomOut", () => {
             if (this._inkingManager.scale > 0.1) {
                 this._inkingManager.scale -= 0.1;
-
+                const scale:Vector3 =  StageView.glbObj.scaling;
+            StageView.glbObj.scaling = new Vector3(scale.x*0.9,scale.y*0.9,scale.z*0.9);
                 this.updateBackgroundImagePosition();
             }
         });
         setupButton("btnZoomIn", () => {
             this._inkingManager.scale += 0.1;
-
+            const scale:Vector3 =  StageView.glbObj.scaling;
+            StageView.glbObj.scaling = new Vector3(scale.x*1.1,scale.y*1.1,scale.z*1.1);
             this.updateBackgroundImagePosition();
         });
 
@@ -415,7 +613,63 @@ export class StageView extends View {
                     : "Share cursor";
             }
         });
+
+        setupButton("btnRotateRight", () => {
+            const result = (this._container.initialObjects.objRotateY as SharedMap)?.get(objRotateYKey);
+
+            console.log("right: " + result);
+            let rotateY: number = 10;
+            if (result)
+                rotateY += result;
+            (this._container.initialObjects.objRotateY as SharedMap)?.set(objRotateYKey, rotateY);
+            StageView.glbObj.rotation = new Vector3(0, rotateY * Math.PI / 180, 0);
+
+            console.log("right: " + rotateY);
+
+        });
+
+        setupButton("btnRotateLeft", () => {
+            const result = (this._container.initialObjects.objRotateY as SharedMap)?.get(objRotateYKey);
+            let rotateY: number = -10;
+            if (result)
+                rotateY += result;
+            (this._container.initialObjects.objRotateY as SharedMap)?.set(objRotateYKey, rotateY);
+            StageView.glbObj.rotation = new Vector3(0, rotateY * Math.PI / 180, 0);
+        });
+
+        setupTextField("objNameTextField",(any)=>{
+            console.log("new value: " + any.target.value);
+            (this._container.initialObjects.objName as SharedMap).set(objNameKey,any.target.value);
+
+            console.log("new share value: " + (this._container.initialObjects.objName as SharedMap).get(objNameKey));
+        });
+
+        setupButton("btnHideInk", () => {
+            const element  = document.getElementById("inkingHost");
+            if(element)
+            element.style.visibility = "hidden";
+        });
+
+        setupButton("btnDisplayInk", () => {
+            const element  = document.getElementById("inkingHost");
+            if(element) 
+             element.style.visibility = "visible";
+        });
+
+        setupButton("btnHide3D", () => {
+            const element  = document.getElementById("blcanvas");
+            if(element)
+            element.style.visibility = "hidden";
+        });
+
+        setupButton("btnDisplay3D", () => {
+            const element  = document.getElementById("blcanvas");
+            if(element)
+            element.style.visibility = "visible";
+        });
+
     }
+
 
     async start() {
         if (Utils.runningInTeams()) {
