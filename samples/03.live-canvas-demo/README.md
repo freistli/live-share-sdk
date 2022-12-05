@@ -22,6 +22,10 @@ Installs the latest node packages
 Runs the app in the development mode.\
 Open [http://localhost:8080](http://localhost:8080) to view it in your browser.
 
+NOTE: You may need to set PORT environment before run `npm run start`
+
+`$env:PORT=7070`
+
 The page will reload when you make changes.\
 Upon loading, if there is no `/#{id}` in the URL, it will create one and insert it into the URL.\
 You can copy this URL and paste it into new browser tabs to test Live Share using a local server.\
