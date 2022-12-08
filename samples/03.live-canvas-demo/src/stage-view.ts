@@ -55,7 +55,7 @@ const appTemplate = `
                 <fluent-button appearance="accent" id="btnHighlighter">Highlighter</fluent-button>
                 <fluent-button appearance="accent" id="btnEraser">Eraser</fluent-button>
                 <fluent-button appearance="accent" id="btnPointEraser">Point eraser</fluent-button>
-                <fluent-button appearance="accent" id="btnClear" style="margin-left: 20px;">Clear</fluent-button>
+                <fluent-button appearance="accent" id="btnClear" >Clear</fluent-button>
                 <fluent-button appearance="accent" id="btnToggleCursorShare">Share cursor</fluent-button>
             </div>
             <div class="toolbar">
@@ -68,7 +68,7 @@ const appTemplate = `
             
             <div class="toolbar">
             <fluent-button appearance="accent" id="btnRotateLeft">Rotate AntiClockwise</fluent-button>            
-            <fluent-button appearance="accent" id="btnRotateRight">Rotate Clockwise</fluent-button>
+            <fluent-button appearance="accent" id="btnRotateRight" style="margin-left: 40px;">Rotate Clockwise</fluent-button>
             </div>            
           </fluent-card>
           <fluent-card style="margin-top: 10px;height: 300px;flex: 2">Personal View Operation         
@@ -79,17 +79,18 @@ const appTemplate = `
                 <fluent-button appearance="accent" id="btnDisplayInk" style="margin-left: 20px;">Display Ink</fluent-button>
                 <fluent-button appearance="accent" id="btnHide3D" style="margin-left: 20px;">Hide 3D</fluent-button>
                 <fluent-button appearance="accent" id="btnDisplay3D" style="margin-left: 20px;">Display 3D</fluent-button>
+                <fluent-button appearance="accent" id="btnAnimate3D" style="margin-left: 20px;">Animation</fluent-button>   
                 <fluent-button appearance="accent" id="btnResetView" style="margin-left: 20px;">Reset view</fluent-button>             
             </div>
             <div class="toolbar">
-                <fluent-button appearance="accent" id="btnOffsetUp" style="margin-left: 120px;">Offset up</fluent-button>   
+                <fluent-button appearance="accent" id="btnOffsetUp" style="margin-left: 160px;">Offset up</fluent-button>   
             </div>
             <div class="toolbar">                
                 <fluent-button appearance="accent" id="btnOffsetLeft" style="margin-left: 20px;">Offset left</fluent-button>
-                <fluent-button appearance="accent" id="btnOffsetRight" style="margin-left: 120px;">Offset right</fluent-button>          
+                <fluent-button appearance="accent" id="btnOffsetRight" style="margin-left: 160px;">Offset right</fluent-button>          
             </div>
             <div class="toolbar">  
-            <fluent-button appearance="accent" id="btnOffsetDown" style="margin-left: 120px;">Offset down</fluent-button>
+            <fluent-button appearance="accent" id="btnOffsetDown" style="margin-left: 160px;">Offset down</fluent-button>
             </div>               
         </fluent-card>  
         <fluent-card style="margin-top: 10px;height: 300px;flex: 2">  Debug Info
@@ -112,7 +113,8 @@ export class StageView extends View {
     public static glbObj: AbstractMesh;
     public static originalScale: Vector3 ;
     public static camera: ArcRotateCamera;
-    
+    public static animationGroupID: number = 0;
+
     private offsetBy(x: number, y: number) {
         this._inkingManager.offset = {
             x: this._inkingManager.offset.x + x,
@@ -243,7 +245,6 @@ export class StageView extends View {
                             StageView.glbObj.rotation = new Vector3(0, rotateY * Math.PI / 180, 0);
                         else
                             StageView.glbObj.rotation = new Vector3(0, Math.PI, 0);
-
                                
                         
                     }
@@ -667,6 +668,20 @@ export class StageView extends View {
             if(element)
             element.style.visibility = "visible";
         });
+
+        setupButton("btnAnimate3D", () => {
+            const animOrg = StageView.glbObj.getScene().animationGroups[StageView.animationGroupID];
+            if(animOrg != null )
+                  animOrg.stop();
+
+            StageView.animationGroupID = ++StageView.animationGroupID%3;
+            const anim = StageView.glbObj.getScene().animationGroups[StageView.animationGroupID];
+
+            if(anim != null )
+                anim.start(true, 1.0, anim.from, anim.to, false);
+        });
+
+        
 
     }
 
