@@ -83,17 +83,13 @@ const appTemplate = `
                 <fluent-button appearance="accent" id="btnResetView" style="margin-left: 20px;">Reset view</fluent-button>             
             </div>
             <div class="toolbar">
-                <fluent-button appearance="accent" id="btnOffsetUp" style="margin-left: 160px;">Offset up</fluent-button>   
-            </div>
-            <div class="toolbar">                
+                <fluent-button appearance="accent" id="btnOffsetUp" style="margin-left: 20px;">Offset up</fluent-button>                             
                 <fluent-button appearance="accent" id="btnOffsetLeft" style="margin-left: 20px;">Offset left</fluent-button>
-                <fluent-button appearance="accent" id="btnOffsetRight" style="margin-left: 160px;">Offset right</fluent-button>          
-            </div>
-            <div class="toolbar">  
-            <fluent-button appearance="accent" id="btnOffsetDown" style="margin-left: 160px;">Offset down</fluent-button>
+                <fluent-button appearance="accent" id="btnOffsetRight" style="margin-left: 20px;">Offset right</fluent-button> 
+                <fluent-button appearance="accent" id="btnOffsetDown" style="margin-left: 20px;">Offset down</fluent-button>
             </div>               
         </fluent-card>  
-        <fluent-card style="margin-top: 10px;height: 300px;flex: 2">  Debug Info
+        <fluent-card style="margin-top: 10px;height: 300px;flex: 1">  Debug Info
             <div id="debugzone" ></div>
         </fluent-card>  
         </fluent-horizontal-scroll>      
@@ -220,6 +216,14 @@ export class StageView extends View {
                 }
               }
             }
+
+            window.addEventListener("resize", () => {
+                if (!engine) {
+                    return;
+                }
+    
+                engine.resize();
+            });
 
             const importMesh = () => {
                 const rotateY = (this._container.initialObjects.objRotateY as SharedMap)?.get(objRotateYKey);
@@ -406,6 +410,8 @@ export class StageView extends View {
 
         
         this._inkingManager.penBrush.color = { r: 255, g: 252, b: 0 };
+
+
     }
 
     private _backgroundImageWidth?: number;
