@@ -1,6 +1,6 @@
 {
     "$schema": "https://developer.microsoft.com/en-us/json-schemas/teams/v1.12/MicrosoftTeams.schema.json",
-    "version": "1.0.4",
+    "version": "1.0.7",
     "manifestVersion": "1.12",
     "id": "ca5e70ed-1bf0-4225-8a0d-c15432beef29",
     "packageName": "com.microsoft.teams.liveshareinking",
@@ -11,7 +11,7 @@
     "developer": {
         "name": "contoso",
         "mpnId": "",
-        "websiteUrl": "https://www.example.com",
+        "websiteUrl": "https://x-dev.azurewebsites.net",
         "privacyUrl": "https://www.example.com/PrivacyStatement",
         "termsOfUseUrl": "https://www.example.com/TermsOfUse"
     },
@@ -26,7 +26,7 @@
     "accentColor": "#FFFFFF",
     "configurableTabs": [
         {            
-            "configurationUrl": "https://<azureappservice>.azurewebsites.net/?view=config&inTeams=1",
+            "configurationUrl": "https://x-dev.azurewebsites.net/?view=config&inTeams=1",
             "canUpdateConfiguration": false,
             "scopes": [
                 "groupchat"
@@ -38,7 +38,8 @@
         }
     ],
     "validDomains": [
-        "*.ngrok.io"
+        "*.ngrok.io",
+        "x-dev.azurewebsites.net"
     ],
     "authorization": {
         "permissions": {

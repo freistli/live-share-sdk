@@ -2,7 +2,8 @@
  * Copyright (c) Microsoft Corporation. All rights reserved.
  * Licensed under the Microsoft Live Share SDK License.
  */
-
+import "@babylonjs/core/Debug/debugLayer";
+import "@babylonjs/inspector";
 import * as Teams from "@microsoft/teams-js";
 import {
     ILiveShareClientOptions,
@@ -26,7 +27,7 @@ import { ConfigView } from "./config-view";
 import { arcCamera, containerSchema, inSecureClientOptions, remoteClientOptions, SidebarView } from "./sidebar-view";
 
 import "@babylonjs/loaders/glTF";
-import { ExecuteCodeAction, ActionManager, Engine, Scene, ArcRotateCamera, Vector3, HemisphericLight, Mesh, MeshBuilder, SceneLoader, AbstractMesh, InterpolateValueAction } from "@babylonjs/core";
+import { ExecuteCodeAction, ActionManager, Engine, Scene, ArcRotateCamera, Vector3, HemisphericLight, Mesh, MeshBuilder, SceneLoader, AbstractMesh, InterpolateValueAction, StandardMaterial, Color3 } from "@babylonjs/core";
 
 
 /**
@@ -42,7 +43,7 @@ const appTemplate = `
                   style="visibility: hidden;">
             <canvas id="blcanvas" style="height: 100%;weight: 100%;"></canvas>
             <div id="inkingHost" ></div>
-        </div>     
+          </div>     
         <fluent-horizontal-scroll id="scrollPane" >
         <fluent-card style="margin-top: 10px;height: 300px;flex: 3">Live Share View Operation       
             <div class="toolbar">
@@ -181,7 +182,7 @@ export class StageView extends View {
             StageView.camera.beta =  Math.PI/2;
             StageView.camera.radius =  2;
 
-            /* hide/show the Inspector
+            /* hide/show the Inspector*/
             window.addEventListener("keydown", (ev) => {
                 // Shift+Ctrl+Alt+I
                 if (ev.shiftKey && ev.ctrlKey && ev.altKey && ev.keyCode === 73) {
@@ -192,7 +193,7 @@ export class StageView extends View {
                     }
                 }
             });
-            */
+            
            /*
             StageView.camera.onViewMatrixChangedObservable.add(()=>{
                  
@@ -255,7 +256,35 @@ export class StageView extends View {
                 });
             };
 
+            const createBox = () => {
+
+                const box = MeshBuilder.CreateBox("box", {});
+                    box.position.x = 2;
+                    box.position.y = 0;
+                    box.position.z=0;
+
+                    const boxMaterial = new StandardMaterial("material", scene);
+                    boxMaterial.diffuseColor = Color3.Random();
+                    box.material = boxMaterial;
+
+                    box.actionManager = new ActionManager(scene);
+                    box.actionManager.registerAction(new ExecuteCodeAction(
+                        ActionManager.OnPickTrigger, 
+                        function (evt) {
+                            const sourceBox = evt.meshUnderPointer;
+                        if (sourceBox){
+                            //move the box upright
+                            //sourceBox.position.x += 0.1;
+                            //sourceBox.position.y += 0.1;
+                        }
+                            //update the color
+                            boxMaterial.diffuseColor = Color3.Random();
+                        }));
+
+            };
+
             importMesh();
+            createBox();
 
             const updateGlbObjRotation = () => {
                 const result = (this._container.initialObjects.objRotateY as SharedMap).get(objRotateYKey);
