@@ -359,3 +359,4 @@ build
 
 # Live Share SDK: generated docs main.js file interferes with ADO linter.
 docs/assets/main.js
+samples/03.live-canvas-demo/manifest/outline.zip
