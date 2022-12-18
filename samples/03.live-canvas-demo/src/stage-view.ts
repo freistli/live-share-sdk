@@ -39,7 +39,7 @@ import { ExecuteCodeAction, ActionManager, Engine, Scene, ArcRotateCamera, Vecto
 const appTemplate = `   
     <div id="appRoot">
         <div id="inkingRoot" >
-            <img id="backgroundImage" src="https://bing.com/th?id=OHR.SeaAngel_EN-US5531672696_1920x1080.jpg&amp;rf=LaDigue_1920x1080.jpg&amp;pid=hp"
+            <img id="backgroundImage" src="https://fllivesharecanvas-dev.azurewebsites.net/cad.png"
                   style="visibility: hidden;">
             <canvas id="blcanvas" style="height: 100%;weight: 100%;"></canvas>
             <div id="inkingHost" ></div>
