@@ -2,7 +2,8 @@
  * Copyright (c) Microsoft Corporation. All rights reserved.
  * Licensed under the Microsoft Live Share SDK License.
  */
-
+import "@babylonjs/core/Debug/debugLayer";
+import "@babylonjs/inspector";
 import * as Teams from "@microsoft/teams-js";
 import {
     ILiveShareClientOptions,
@@ -26,7 +27,7 @@ import { ConfigView } from "./config-view";
 import { arcCamera, containerSchema, inSecureClientOptions, remoteClientOptions, SidebarView } from "./sidebar-view";
 
 import "@babylonjs/loaders/glTF";
-import { ExecuteCodeAction, ActionManager, Engine, Scene, ArcRotateCamera, Vector3, HemisphericLight, Mesh, MeshBuilder, SceneLoader, AbstractMesh, InterpolateValueAction } from "@babylonjs/core";
+import { ExecuteCodeAction, ActionManager, Engine, Scene, ArcRotateCamera, Vector3, HemisphericLight, Mesh, MeshBuilder, SceneLoader, AbstractMesh, InterpolateValueAction, StandardMaterial, Color3, FreeCamera, TransformNode } from "@babylonjs/core";
 
 
 /**
@@ -38,11 +39,11 @@ import { ExecuteCodeAction, ActionManager, Engine, Scene, ArcRotateCamera, Vecto
 const appTemplate = `   
     <div id="appRoot">
         <div id="inkingRoot" >
-            <img id="backgroundImage" src="https://bing.com/th?id=OHR.SeaAngel_EN-US5531672696_1920x1080.jpg&amp;rf=LaDigue_1920x1080.jpg&amp;pid=hp"
+            <img id="backgroundImage" src="https://fllivesharecanvas-dev.azurewebsites.net/cad.png"
                   style="visibility: hidden;">
             <canvas id="blcanvas" style="height: 100%;weight: 100%;"></canvas>
             <div id="inkingHost" ></div>
-        </div>     
+          </div>     
         <fluent-horizontal-scroll id="scrollPane" >
         <fluent-card style="margin-top: 10px;height: 300px;flex: 3">Live Share View Operation       
             <div class="toolbar">
@@ -109,6 +110,7 @@ export class StageView extends View {
     public static glbObj: AbstractMesh;
     public static originalScale: Vector3 ;
     public static camera: ArcRotateCamera;
+    public static freeCamera: FreeCamera;
     public static animationGroupID: number = 0;
 
     private offsetBy(x: number, y: number) {
@@ -161,7 +163,7 @@ export class StageView extends View {
 
 
 
-    private updateCanvas(objRotateY: SharedMap, objName: SharedMap, mainCamera: SharedMap) {
+    private async updateCanvas(objRotateY: SharedMap, objName: SharedMap, mainCamera: SharedMap) {
 
         
         // create the canvas html element and attach it to the webpage
@@ -170,18 +172,35 @@ export class StageView extends View {
         if (canvas) {
 
             // initialize babylon scene and engine
-            var engine = new Engine(canvas, true);
+            var engine = new Engine(canvas, true,{ disableWebGL2Support: true});
             var scene = new Scene(engine);
-
-            StageView.camera = new ArcRotateCamera("Camera", Math.PI / 2, Math.PI / 2, 2, Vector3.Zero(), scene);
+         
+            StageView.camera = new ArcRotateCamera("Camera", Math.PI / 2, Math.PI / 2, 2, Vector3.Zero(), scene);            
             StageView.camera.attachControl(canvas, true);
+
+            /*
+            var freeCamera = new FreeCamera("freeCamera", new Vector3(0.5, 0, 0.5), scene);
+            StageView.freeCamera.attachControl(canvas, true); 
+            */
+
+
             var light1: HemisphericLight = new HemisphericLight("light1", new Vector3(1, 1, 0), scene);
 
             StageView.camera.alpha =  Math.PI/2;
             StageView.camera.beta =  Math.PI/2;
             StageView.camera.radius =  2;
 
-            /* hide/show the Inspector
+            const env = scene.createDefaultEnvironment();
+
+            if (env?.ground)
+            {
+                // here we add XR support
+                const xr = await scene.createDefaultXRExperienceAsync({
+                    floorMeshes: [env.ground],
+                });
+            }
+
+            /* hide/show the Inspector*/
             window.addEventListener("keydown", (ev) => {
                 // Shift+Ctrl+Alt+I
                 if (ev.shiftKey && ev.ctrlKey && ev.altKey && ev.keyCode === 73) {
@@ -192,7 +211,7 @@ export class StageView extends View {
                     }
                 }
             });
-            */
+            
            /*
             StageView.camera.onViewMatrixChangedObservable.add(()=>{
                  
@@ -229,12 +248,11 @@ export class StageView extends View {
                 const rotateY = (this._container.initialObjects.objRotateY as SharedMap)?.get(objRotateYKey);
                 const objname = (this._container.initialObjects.objName as SharedMap).get(objNameKey) ?? "avatar.glb";
                 
-                SceneLoader.ImportMesh("", "https://fllivesharecanvas.azurewebsites.net/", objname, scene, function (newMeshes, particleSystems, skeletons, animationGroups) {
+                SceneLoader.ImportMesh("", "https://fllivesharecanvas-dev.azurewebsites.net/", objname, scene, function (newMeshes, particleSystems, skeletons, animationGroups) {
 
                     if (newMeshes) {
                         console.log("load new mesh: "+objname);
                         StageView.glbObj = newMeshes[0];
-
                         //Scale the model down
                         if (objname.includes('bee'))
                             StageView.glbObj.scaling.scaleInPlace(0.07);
@@ -255,6 +273,35 @@ export class StageView extends View {
                 });
             };
 
+            const createBox = () => {
+
+                const box = MeshBuilder.CreateBox("box", {size: 0.2});
+                    box.position.x = 1;
+                    box.position.y = 0.1;
+                    box.position.z=0;
+
+                    const boxMaterial = new StandardMaterial("material", scene);
+                    boxMaterial.diffuseColor = Color3.Random();
+                    box.material = boxMaterial;
+
+                    box.actionManager = new ActionManager(scene);
+                    box.actionManager.registerAction(new ExecuteCodeAction(
+                        ActionManager.OnPickTrigger, 
+                        function (evt) {
+                            const sourceBox = evt.meshUnderPointer;
+                        if (sourceBox){
+                            //move the box upright
+                            //sourceBox.position.x += 0.1;
+                            //sourceBox.position.y += 0.1;
+                        }
+                            //update the color
+                            boxMaterial.diffuseColor = Color3.Random();
+                        }));
+
+
+            };
+                        
+            createBox();
             importMesh();
 
             const updateGlbObjRotation = () => {

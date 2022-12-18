@@ -35,12 +35,14 @@ export class ConfigView extends View {
         
     }
 
-    start() {
+    async start() {
         if (Utils.runningInTeams()) {
-            app.initialize();
+            console.log("Loaded in Teams");
+            await app.initialize();
             pages.config.registerOnSaveHandler(this.onSavePagesConfig);
             pages.config.setValidityState(true);
             app.notifySuccess();
+           
         }
     }
 }

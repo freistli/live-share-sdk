@@ -1,8 +1,12 @@
 # Live Canvas POC
 
-Starting from [the simple live canvas demo](https://github.com/microsoft/live-share-sdk/tree/main/samples/javascript/03.live-canvas-demo), this repository is customized as an advanced POC of using `LiveCanvas`, `Fluid UI/Web Component`, `BabyLon Js` and `InkingManager` to implement a collaborative inking 2D/3D objects (3D rendering works in Teams Web App) teams meeting extension. It also supports switching different backend Fluid Relay Services. 
+Starting from [the simple live canvas demo](https://github.com/microsoft/live-share-sdk/tree/main/samples/javascript/03.live-canvas-demo), this repository is customized as an advanced POC of using `LiveCanvas`, `Fluid UI/Web Component`, `BabyLon Js` and `InkingManager` to implement a collaborative inking 2D/3D objects (3D rendering works in Teams Web App with WebGL2, in Teams Desktop App with WebGL) teams meeting extension. It also supports switching different backend Fluid Relay Services. 
 
-![image](https://user-images.githubusercontent.com/8623897/204968966-d8a78937-2b0d-43a2-b0c2-c2cf943dcf35.png)
+
+
+https://user-images.githubusercontent.com/8623897/208295231-b3382580-d61e-4986-a56c-e9538c8ea7e1.mp4
+
+
 
 ![image](https://user-images.githubusercontent.com/8623897/204969724-ad141d92-01d3-4b1f-bdb3-a84251731a40.png)
 

@@ -181,8 +181,8 @@ export class SidebarView extends View {
         }
     }
 
-    start() {
-        app.initialize();
+    async start() {
+      await  app.initialize();
         app.notifySuccess();
     }
 }
